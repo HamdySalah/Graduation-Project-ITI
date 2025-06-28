@@ -12,10 +12,21 @@
   "private": true,
   "dependencies": {
     "@nestjs/common": "^11.0.0",
+    "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.0.0",
+    "@nestjs/jwt": "^11.0.0",
+    "@nestjs/mongoose": "^11.0.3",
+    "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.0",
     "axios": "^1.6.0",
+    "bcryptjs": "^3.0.2",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
+    "mongoose": "^8.16.0",
     "next": "~15.2.4",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "passport-local": "^1.0.0",
     "react": "19.0.0",
     "react-dom": "19.0.0",
     "reflect-metadata": "^0.1.13",
@@ -35,7 +46,10 @@
     "@swc/cli": "~0.6.0",
     "@swc/core": "~1.5.7",
     "@swc/helpers": "~0.5.11",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "~18.16.9",
+    "@types/passport-jwt": "^4.0.1",
+    "@types/passport-local": "^1.0.38",
     "@types/react": "19.0.0",
     "@types/react-dom": "19.0.0",
     "autoprefixer": "10.4.13",
@@ -53,4 +67,3 @@
     "backend-e2e"
   ]
 }
-
