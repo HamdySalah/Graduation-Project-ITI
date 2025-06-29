@@ -25,22 +25,22 @@ export enum ServiceType {
 @Schema({ timestamps: true })
 export class PatientRequest {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  patientId: Types.ObjectId;
+  patientId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
-  nurseId?: Types.ObjectId;
+  nurseId!: Types.ObjectId;
 
   @Prop({ required: true })
-  title: string;
+  title!: string;
 
   @Prop({ required: true })
-  description: string;
+  description!: string;
 
   @Prop({ required: true, enum: ServiceType })
-  serviceType: ServiceType;
+  serviceType!: ServiceType;
 
   @Prop({ default: RequestStatus.PENDING, enum: RequestStatus })
-  status: RequestStatus;
+  status!: RequestStatus;
 
   @Prop({
     type: {
@@ -53,34 +53,34 @@ export class PatientRequest {
       required: true,
     },
   })
-  location: {
+  location!: {
     type: string;
     coordinates: [number, number]; // [longitude, latitude]
   };
 
   @Prop({ required: true })
-  address: string;
+  address!: string;
 
   @Prop({ required: true })
-  scheduledDate: Date;
+  scheduledDate!: Date;
 
   @Prop()
-  estimatedDuration: number; // in hours
+  estimatedDuration!: number; // in hours
 
   @Prop()
-  urgencyLevel: string; // low, medium, high, critical
+  urgencyLevel!: string; // low, medium, high, critical
 
   @Prop()
-  specialRequirements: string;
+  specialRequirements!: string;
 
   @Prop()
-  budget: number;
+  budget?: number;
 
   @Prop()
-  contactPhone: string;
+  contactPhone?: string;
 
   @Prop()
-  notes: string;
+  notes?: string;
 
   @Prop()
   acceptedAt?: Date;

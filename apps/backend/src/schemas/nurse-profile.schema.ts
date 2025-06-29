@@ -17,46 +17,46 @@ export enum SpecializationType {
 @Schema({ timestamps: true })
 export class NurseProfile {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  userId: Types.ObjectId;
+  userId?: Types.ObjectId;
 
   @Prop({ required: true })
-  licenseNumber: string;
+  licenseNumber?: string;
 
   @Prop({ required: true })
-  yearsOfExperience: number;
+  yearsOfExperience?: number;
 
   @Prop({ type: [String], enum: SpecializationType })
-  specializations: SpecializationType[];
+  specializations?: SpecializationType[];
 
   @Prop()
-  education: string;
+  education?: string;
 
   @Prop()
-  certifications: string[];
+  certifications?: string[];
 
   @Prop({ type: [String] })
-  documents: string[]; // URLs to uploaded documents
+  documents?: string[]; // URLs to uploaded documents
 
   @Prop({ min: 0, max: 5, default: 0 })
-  rating: number;
+  rating?: number;
 
   @Prop({ default: 0 })
-  totalReviews: number;
+  totalReviews?: number;
 
   @Prop({ default: 0 })
-  completedJobs: number;
+  completedJobs?: number;
 
   @Prop({ default: true })
-  isAvailable: boolean;
+  isAvailable?: boolean;
 
   @Prop()
-  hourlyRate: number;
+  hourlyRate?: number;
 
   @Prop()
-  bio: string;
+  bio?: string;
 
   @Prop()
-  languages: string[];
+  languages?: string[];
 
   @Prop({ default: Date.now })
   verifiedAt?: Date;

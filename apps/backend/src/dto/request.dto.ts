@@ -3,23 +3,23 @@ import { ServiceType, RequestStatus } from '../schemas/patient-request.schema';
 
 export class CreateRequestDto {
   @IsString()
-  title: string;
+  title?: string;
 
   @IsString()
-  description: string;
+  description?: string;
 
   @IsEnum(ServiceType)
-  serviceType: ServiceType;
+  serviceType?: ServiceType;
 
   @IsArray()
   @IsNumber({}, { each: true })
-  coordinates: [number, number]; // [longitude, latitude]
+  coordinates?: [number, number]; // [longitude, latitude]
 
   @IsString()
-  address: string;
+  address?: string;
 
   @IsDateString()
-  scheduledDate: string;
+  scheduledDate?: string;
 
   @IsOptional()
   @IsNumber()
@@ -48,7 +48,7 @@ export class CreateRequestDto {
 
 export class UpdateRequestStatusDto {
   @IsEnum(RequestStatus)
-  status: RequestStatus;
+  status?: RequestStatus;
 
   @IsOptional()
   @IsString()
@@ -57,10 +57,10 @@ export class UpdateRequestStatusDto {
 
 export class GetNearbyNursesDto {
   @IsNumber()
-  latitude: number;
+  latitude?: number;
 
   @IsNumber()
-  longitude: number;
+  longitude?: number;
 
   @IsOptional()
   @IsNumber()

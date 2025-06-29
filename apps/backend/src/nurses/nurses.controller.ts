@@ -17,7 +17,7 @@ export class NursesController {
   @Patch(':id/verify')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
-  async verifyNurse(@Param('id') nurseId: string, @Request() req) {
+  async verifyNurse(@Param('id') nurseId: string, @Request() req : any) {
     return this.nursesService.verifyNurse(nurseId, req.user);
   }
 }

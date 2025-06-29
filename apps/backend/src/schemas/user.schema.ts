@@ -18,22 +18,22 @@ export enum UserStatus {
 @Schema({ timestamps: true })
 export class User {
   @Prop({ required: true })
-  name: string;
+  name?: string;
 
   @Prop({ required: true, unique: true })
-  email: string;
+  email?: string;
 
   @Prop({ required: true })
-  password: string;
+  password?: string;
 
   @Prop({ required: true })
-  phone: string;
+  phone?: string;
 
   @Prop({ required: true, enum: UserRole })
-  role: UserRole;
+  role?: UserRole;
 
   @Prop({ default: UserStatus.PENDING, enum: UserStatus })
-  status: UserStatus;
+  status?: UserStatus;
 
   @Prop({
     type: {
@@ -46,7 +46,7 @@ export class User {
       required: true,
     },
   })
-  location: {
+  location?: {
     type: string;
     coordinates: [number, number]; // [longitude, latitude]
   };
@@ -58,10 +58,10 @@ export class User {
   profileImage?: string;
 
   @Prop({ default: Date.now })
-  createdAt: Date;
+  createdAt?: Date;
 
   @Prop({ default: Date.now })
-  updatedAt: Date;
+  updatedAt?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
