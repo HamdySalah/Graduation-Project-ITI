@@ -162,6 +162,9 @@ export class RequestsService {
       }
     }
 
+    if (!status) {
+      throw new BadRequestException('Status is required');
+    }
     request.status = status;
     await request.save();
 
