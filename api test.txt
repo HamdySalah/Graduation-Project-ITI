@@ -62,3 +62,58 @@ The backend is now ready to serve the frontend pages you requested:
 /admin - Uses GET /api/admin/pending-nurses and PATCH /api/nurses/:id/verify
 The backend server is currently running on http://localhost:3001 and all endpoints are functional. You can now proceed with frontend development or test the API endpoints using the provided documentation and test scripts.
 Would you like me to help you with anything specific about the backend implementation or move on to frontend development?
+
+
+
+
+Registeration test :
+URL: POST http://localhost:3001/api/auth/register
+Headers: Content-Type: application/json
+Body (for nurse registration):
+{
+  "name": "Mostafa Hosny",
+  "email": "mo@gmail.com",
+  "password": "password123",
+  "phone": "0123456789",
+  "role": "nurse",
+  "coordinates": [31.233334, 30.033333],
+  "address": "Nasr City, Cairo",
+  "licenseNumber": "NUR123456",
+  "yearsOfExperience": 5,
+  "specializations": ["general"],
+  "education": "Bachelor of Nursing",
+  "hourlyRate": 50,
+  "bio": "Experienced nurse"
+}
+res:
+{
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1vQGdtYWlsLmNvbSIsInN1YiI6IjY4NjEzODBiZDYyNTVlZGMyNWI5MzUwNyIsInJvbGUiOiJudXJzZSIsImlhdCI6MTc1MTIwMTgwMywiZXhwIjoxNzUxMjg4MjAzfQ.KmAETPTsy1ZSkexDs78XJ3uDJ85ft3aszqG2pOghudE",
+    "user": {
+        "id": "6861380bd6255edc25b93507",
+        "name": "Mostafa Hosny",
+        "email": "mo@gmail.com",
+        "role": "nurse",
+        "status": "pending"
+    }
+}
+---------------------------------------------------------------------------------------
+Body (for patient registration):
+{
+  "name": "Mostafa Hosny",
+  "email": "mo2@gmail.com",
+  "password": "password123",
+  "phone": "0123456789",
+  "role": "patient",
+  "coordinates": [31.233334, 30.033333],
+  "address": "Nasr City, Cairo"
+}
+
+Available API Endpoints:
+POST /api/auth/register - User registration
+POST /api/auth/login - User login
+GET /api/nurses/nearby - Find nearby nurses
+POST /api/requests - Create service requests
+GET /api/requests - Get requests
+PATCH /api/requests/:id/status - Update request status
+GET /api/admin/pending-nurses - Admin: Get pending nurses
+PATCH /api/nurses/:id/verify - Admin: Verify nurses
