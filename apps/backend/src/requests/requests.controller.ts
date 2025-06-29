@@ -10,12 +10,12 @@ export class RequestsController {
   constructor(private readonly requestsService: RequestsService) {}
 
   @Post()
-  async createRequest(@Body(ValidationPipe) createRequestDto: CreateRequestDto, @Request() req) {
+  async createRequest(@Body(ValidationPipe) createRequestDto: CreateRequestDto, @Request() req : any) {
     return this.requestsService.createRequest(createRequestDto, req.user);
   }
 
   @Get()
-  async getRequests(@Request() req, @Query('status') status?: RequestStatus) {
+  async getRequests(@Request() req : any, @Query('status') status?: RequestStatus) {
     return this.requestsService.getRequests(req.user, status);
   }
 
@@ -23,7 +23,7 @@ export class RequestsController {
   async updateRequestStatus(
     @Param('id') requestId: string,
     @Body(ValidationPipe) updateStatusDto: UpdateRequestStatusDto,
-    @Request() req
+    @Request() req : any
   ) {
     return this.requestsService.updateRequestStatus(requestId, updateStatusDto, req.user);
   }

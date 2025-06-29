@@ -28,7 +28,7 @@ export class PatientRequest {
   patientId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User' })
-  nurseId!: Types.ObjectId;
+  nurseId?: Types.ObjectId;
 
   @Prop({ required: true })
   title!: string;
@@ -93,6 +93,10 @@ export class PatientRequest {
 
   @Prop()
   cancellationReason?: string;
+
+  // Timestamps (automatically added by Mongoose)
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export const PatientRequestSchema = SchemaFactory.createForClass(PatientRequest);

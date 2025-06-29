@@ -22,16 +22,16 @@ export class RequestsService {
 
     const request = new this.requestModel({
       ...requestData,
-      patientId: patientUser._id,
+      patientId: patientUser._id as any,
       location: {
         type: 'Point',
         coordinates: coordinates, // [longitude, latitude]
       },
-      scheduledDate: new Date(scheduledDate),
+      scheduledDate: new Date(scheduledDate || Date.now()),
     });
 
     const savedRequest = await request.save();
-    
+
     // Populate patient information
     await savedRequest.populate('patientId', '-password');
 
@@ -50,7 +50,7 @@ export class RequestsService {
       budget: savedRequest.budget,
       contactPhone: savedRequest.contactPhone,
       notes: savedRequest.notes,
-      createdAt: savedRequest.createdAt,
+      createdAt: savedRequest.createdAt || new Date(),
       patient: {
         id: (savedRequest.patientId as any)._id,
         name: (savedRequest.patientId as any).name,
@@ -64,12 +64,12 @@ export class RequestsService {
 
     // Filter based on user role
     if (user.role === UserRole.PATIENT) {
-      query.patientId = user._id;
+      query.patientId = user._id as any;
     } else if (user.role === UserRole.NURSE) {
       // Nurses can see requests assigned to them or available requests
       query = {
         $or: [
-          { nurseId: user._id },
+          { nurseId: user._id as any },
           { status: RequestStatus.PENDING }
         ]
       };
@@ -137,10 +137,10 @@ export class RequestsService {
       if (request.status !== RequestStatus.PENDING) {
         throw new BadRequestException('Only pending requests can be accepted');
       }
-      request.nurseId = user._id;
+      request.nurseId = user._id as any;
       request.acceptedAt = new Date();
     } else if (status === RequestStatus.COMPLETED) {
-      if (user.role !== UserRole.NURSE || !request.nurseId?.equals(user._id)) {
+      if (user.role !== UserRole.NURSE || !request.nurseId?.equals(user._id as any)) {
         throw new ForbiddenException('Only the assigned nurse can complete requests');
       }
       if (request.status !== RequestStatus.IN_PROGRESS && request.status !== RequestStatus.ACCEPTED) {
@@ -148,13 +148,13 @@ export class RequestsService {
       }
       request.completedAt = new Date();
     } else if (status === RequestStatus.CANCELLED) {
-      if (user.role !== UserRole.PATIENT || !request.patientId.equals(user._id)) {
+      if (user.role !== UserRole.PATIENT || !request.patientId.equals(user._id as any)) {
         throw new ForbiddenException('Only the patient can cancel their requests');
       }
       request.cancelledAt = new Date();
       request.cancellationReason = cancellationReason;
     } else if (status === RequestStatus.IN_PROGRESS) {
-      if (user.role !== UserRole.NURSE || !request.nurseId?.equals(user._id)) {
+      if (user.role !== UserRole.NURSE || !request.nurseId?.equals(user._id as any)) {
         throw new ForbiddenException('Only the assigned nurse can start requests');
       }
       if (request.status !== RequestStatus.ACCEPTED) {
