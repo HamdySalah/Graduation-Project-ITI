@@ -2,14 +2,13 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException 
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { PatientRequest, PatientRequestDocument, RequestStatus } from '../schemas/patient-request.schema';
-import { User, UserDocument, UserRole } from '../schemas/user.schema';
+import { UserDocument, UserRole } from '../schemas/user.schema';
 import { CreateRequestDto, UpdateRequestStatusDto } from '../dto/request.dto';
 
 @Injectable()
 export class RequestsService {
   constructor(
     @InjectModel(PatientRequest.name) private requestModel: Model<PatientRequestDocument>,
-    @InjectModel(User.name) private userModel: Model<UserDocument>,
   ) {}
 
   async createRequest(createRequestDto: CreateRequestDto, patientUser: UserDocument) {
