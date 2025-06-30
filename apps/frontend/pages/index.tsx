@@ -10,19 +10,32 @@ import VerificationProcess from '../components/VerificationProcess';
 
 export default function Home() {
   return (
-    <div>
+    <div className="scroll-smooth">
       <Navbar />
-      <HeroSection />
-      <HowItWorks />
-      <PlatformFeatures />
-      <VerificationProcess />
-      {/* Placeholder for remaining sections */}
-      <TestimonialSection />
-      {/* Add HowItWorksSection, PlatformFeaturesSection, VerificationProcessSection, 
-          CallToActionSection, ContactSection, and Footer here as you implement them */}
-      <CallToAction />
-      <ContactUs />
-      <Footer />
+      <section id="home">
+        <HeroSection />
+      </section>
+      <section id="how-it-works">
+        <HowItWorks />
+      </section>
+      <section id="platform-features">
+        <PlatformFeatures />
+      </section>
+      <section>
+        <VerificationProcess />
+      </section>
+      <section>
+        <TestimonialSection />
+      </section>
+      <section>
+        <CallToAction />
+      </section>
+      <section id="contact-us">
+        <ContactUs />
+      </section>
+      <section>
+        <Footer />
+      </section>
     </div>
   );
 }
