@@ -29,7 +29,7 @@ export default function Login() {
   return (
     <div className="flex h-screen">
       <div className="w-1/2 bg-blue-200 flex items-center justify-center">
-        <img src="/syringes.jpg" alt="Login Background" className="max-w-full max-h-full" />
+        <img src="/imagenurse3.jpeg" alt="Login Background" className="max-w-full max-h-full" />
       </div>
       <div className="w-1/2 flex items-center justify-center bg-gray-100">
         <div className="w-full max-w-md p-8 bg-white shadow-lg rounded-lg">
