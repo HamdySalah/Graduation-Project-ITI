@@ -118,4 +118,90 @@ export class AuthService {
     }
     return null;
   }
+
+  async getProfile(user: UserDocument) {
+    const userProfile = await this.userModel
+      .findById(user._id)
+      .select('-password')
+      .exec();
+
+    if (!userProfile) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    let profile: any = {
+      id: userProfile._id.toString(),
+      name: userProfile.name,
+      email: userProfile.email,
+      phone: userProfile.phone,
+      role: userProfile.role,
+      status: userProfile.status,
+      location: userProfile.location,
+      address: userProfile.address,
+      profileImage: userProfile.profileImage,
+      createdAt: userProfile.createdAt,
+    };
+
+    // If user is a nurse, include nurse profile data
+    if (user.role === UserRole.NURSE) {
+      const nurseProfile = await this.nurseProfileModel
+        .findOne({ userId: user._id })
+        .exec();
+
+      if (nurseProfile) {
+        profile = {
+          ...profile,
+          licenseNumber: nurseProfile.licenseNumber,
+          yearsOfExperience: nurseProfile.yearsOfExperience,
+          specializations: nurseProfile.specializations,
+          education: nurseProfile.education,
+          certifications: nurseProfile.certifications,
+          rating: nurseProfile.rating,
+          totalReviews: nurseProfile.totalReviews,
+          completedJobs: nurseProfile.completedJobs,
+          hourlyRate: nurseProfile.hourlyRate,
+          bio: nurseProfile.bio,
+          languages: nurseProfile.languages,
+          isAvailable: nurseProfile.isAvailable,
+          documents: nurseProfile.documents,
+        };
+      }
+    }
+
+    return profile;
+  }
+
+  async updateProfile(user: UserDocument, updateData: any) {
+    const { coordinates, nurseData, ...userData } = updateData;
+
+    // Update user data
+    const updateUserData: any = { ...userData };
+    if (coordinates) {
+      updateUserData.location = {
+        type: 'Point',
+        coordinates: coordinates,
+      };
+    }
+
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(user._id, updateUserData, { new: true })
+      .select('-password')
+      .exec();
+
+    // If user is a nurse and nurse data is provided, update nurse profile
+    if (user.role === UserRole.NURSE && nurseData) {
+      await this.nurseProfileModel
+        .findOneAndUpdate(
+          { userId: user._id },
+          nurseData,
+          { new: true, upsert: true }
+        )
+        .exec();
+    }
+
+    return {
+      message: 'Profile updated successfully',
+      user: updatedUser,
+    };
+  }
 }

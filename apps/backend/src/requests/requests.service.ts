@@ -120,6 +120,64 @@ export class RequestsService {
     }));
   }
 
+  async getRequestById(requestId: string, user: UserDocument) {
+    const request = await this.requestModel
+      .findById(requestId)
+      .populate('patientId', '-password')
+      .populate('nurseId', '-password')
+      .exec();
+
+    if (!request) {
+      throw new NotFoundException('Request not found');
+    }
+
+    // Check permissions
+    const canView =
+      user.role === UserRole.ADMIN ||
+      request.patientId._id.equals(user._id as any) ||
+      (request.nurseId && request.nurseId._id.equals(user._id as any));
+
+    if (!canView) {
+      throw new ForbiddenException('You do not have permission to view this request');
+    }
+
+    return {
+      id: request._id,
+      title: request.title,
+      description: request.description,
+      serviceType: request.serviceType,
+      status: request.status,
+      location: request.location,
+      address: request.address,
+      scheduledDate: request.scheduledDate,
+      estimatedDuration: request.estimatedDuration,
+      urgencyLevel: request.urgencyLevel,
+      specialRequirements: request.specialRequirements,
+      budget: request.budget,
+      contactPhone: request.contactPhone,
+      notes: request.notes,
+      patient: {
+        id: request.patientId._id,
+        name: (request.patientId as any).name,
+        email: (request.patientId as any).email,
+        phone: (request.patientId as any).phone,
+        address: (request.patientId as any).address,
+      },
+      nurse: request.nurseId ? {
+        id: request.nurseId._id,
+        name: (request.nurseId as any).name,
+        email: (request.nurseId as any).email,
+        phone: (request.nurseId as any).phone,
+        address: (request.nurseId as any).address,
+      } : null,
+      createdAt: request.createdAt || new Date(),
+      acceptedAt: request.acceptedAt,
+      completedAt: request.completedAt,
+      cancelledAt: request.cancelledAt,
+      cancellationReason: request.cancellationReason,
+    };
+  }
+
   async updateRequestStatus(requestId: string, updateStatusDto: UpdateRequestStatusDto, user: UserDocument) {
     const request = await this.requestModel.findById(requestId).exec();
     if (!request) {
@@ -177,5 +235,84 @@ export class RequestsService {
         cancelledAt: request.cancelledAt,
       },
     };
+  }
+
+  async getDashboardStats(user: UserDocument) {
+    const stats: any = {};
+
+    if (user.role === UserRole.PATIENT) {
+      // Patient dashboard stats
+      const totalRequests = await this.requestModel.countDocuments({ patientId: user._id }).exec();
+      const pendingRequests = await this.requestModel.countDocuments({
+        patientId: user._id,
+        status: RequestStatus.PENDING
+      }).exec();
+      const acceptedRequests = await this.requestModel.countDocuments({
+        patientId: user._id,
+        status: RequestStatus.ACCEPTED
+      }).exec();
+      const completedRequests = await this.requestModel.countDocuments({
+        patientId: user._id,
+        status: RequestStatus.COMPLETED
+      }).exec();
+
+      stats.patient = {
+        totalRequests,
+        pendingRequests,
+        acceptedRequests,
+        completedRequests,
+        cancelledRequests: totalRequests - pendingRequests - acceptedRequests - completedRequests,
+      };
+
+    } else if (user.role === UserRole.NURSE) {
+      // Nurse dashboard stats
+      const totalAssignedRequests = await this.requestModel.countDocuments({ nurseId: user._id }).exec();
+      const completedRequests = await this.requestModel.countDocuments({
+        nurseId: user._id,
+        status: RequestStatus.COMPLETED
+      }).exec();
+      const activeRequests = await this.requestModel.countDocuments({
+        nurseId: user._id,
+        status: RequestStatus.ACCEPTED
+      }).exec();
+      const availableRequests = await this.requestModel.countDocuments({
+        status: RequestStatus.PENDING
+      }).exec();
+
+      stats.nurse = {
+        totalAssignedRequests,
+        completedRequests,
+        activeRequests,
+        availableRequests,
+        completionRate: totalAssignedRequests > 0 ? Math.round((completedRequests / totalAssignedRequests) * 100) : 0,
+      };
+
+    } else if (user.role === UserRole.ADMIN) {
+      // Admin dashboard stats
+      const totalRequests = await this.requestModel.countDocuments().exec();
+      const pendingRequests = await this.requestModel.countDocuments({ status: RequestStatus.PENDING }).exec();
+      const completedRequests = await this.requestModel.countDocuments({ status: RequestStatus.COMPLETED }).exec();
+
+      // Import User model for admin stats
+      const User = this.requestModel.db.model('User');
+      const totalUsers = await User.countDocuments().exec();
+      const totalNurses = await User.countDocuments({ role: UserRole.NURSE }).exec();
+      const pendingNurses = await User.countDocuments({
+        role: UserRole.NURSE,
+        status: 'pending'
+      }).exec();
+
+      stats.admin = {
+        totalRequests,
+        pendingRequests,
+        completedRequests,
+        totalUsers,
+        totalNurses,
+        pendingNurses,
+        activeRequests: await this.requestModel.countDocuments({ status: RequestStatus.ACCEPTED }).exec(),
+      };
+    }
+
+    return stats;
   }
 }

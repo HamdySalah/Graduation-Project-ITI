@@ -20,4 +20,11 @@ export class NursesController {
   async verifyNurse(@Param('id') nurseId: string, @Request() req : any) {
     return this.nursesService.verifyNurse(nurseId, req.user);
   }
+
+  @Patch('availability')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.NURSE)
+  async toggleAvailability(@Request() req : any) {
+    return this.nursesService.toggleAvailability(req.user);
+  }
 }

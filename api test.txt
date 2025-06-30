@@ -117,3 +117,30 @@ GET /api/requests - Get requests
 PATCH /api/requests/:id/status - Update request status
 GET /api/admin/pending-nurses - Admin: Get pending nurses
 PATCH /api/nurses/:id/verify - Admin: Verify nurses
+ New Endpoints Added:
+1. User Profile Management (/api/auth)
+GET /api/auth/profile - Get current user profile (with nurse data if applicable)
+PUT /api/auth/profile - Update user profile (including nurse profile data)
+2. Request Management (/api/requests)
+GET /api/requests/:id - Get detailed request information
+GET /api/requests/dashboard/stats - Get dashboard statistics based on user role
+3. Nurse Management (/api/nurses)
+PATCH /api/nurses/availability - Toggle nurse availability status
+📋 Complete API Endpoints List:
+Authentication (/api/auth)
+✅ POST /register - User registration
+✅ POST /login - User login
+✅ GET /profile - Get user profile
+✅ PUT /profile - Update user profile
+Nurses (/api/nurses)
+✅ GET /nearby - Find nearby nurses
+✅ PATCH /:id/verify - Admin: Verify nurse
+✅ PATCH /availability - Nurse: Toggle availability
+Requests (/api/requests)
+✅ POST / - Create service request
+✅ GET / - Get requests (filtered by role)
+✅ GET /dashboard/stats - Get dashboard statistics
+✅ GET /:id - Get request details
+✅ PATCH /:id/status - Update request status
+Admin (/api/admin)
+✅ GET /pending-nurses - Get pending nurse verifications

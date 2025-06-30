@@ -147,4 +147,23 @@ export class NursesService {
 
     return result;
   }
+
+  async toggleAvailability(user: UserDocument) {
+    if (user.role !== UserRole.NURSE) {
+      throw new ForbiddenException('Only nurses can toggle availability');
+    }
+
+    const nurseProfile = await this.nurseProfileModel.findOne({ userId: user._id }).exec();
+    if (!nurseProfile) {
+      throw new NotFoundException('Nurse profile not found');
+    }
+
+    nurseProfile.isAvailable = !nurseProfile.isAvailable;
+    await nurseProfile.save();
+
+    return {
+      message: `Availability ${nurseProfile.isAvailable ? 'enabled' : 'disabled'} successfully`,
+      isAvailable: nurseProfile.isAvailable,
+    };
+  }
 }
