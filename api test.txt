@@ -53,18 +53,6 @@ Feature Modules: Nurses, Requests, Admin modules
 Documentation: API_DOCUMENTATION.md, SETUP_INSTRUCTIONS.md
 Testing: test-api.js, database seeder
 Configuration: Environment setup, CORS, validation
-🚀 Ready for Frontend Integration
-The backend is now ready to serve the frontend pages you requested:
-/register - Uses POST /api/auth/register
-/login - Uses POST /api/auth/login
-/dashboard - Uses GET /api/nurses/nearby
-/requests - Uses POST /api/requests and GET /api/requests
-/admin - Uses GET /api/admin/pending-nurses and PATCH /api/nurses/:id/verify
-The backend server is currently running on http://localhost:3001 and all endpoints are functional. You can now proceed with frontend development or test the API endpoints using the provided documentation and test scripts.
-Would you like me to help you with anything specific about the backend implementation or move on to frontend development?
-
-
-
 
 Registeration test :
 URL: POST http://localhost:3001/api/auth/register
