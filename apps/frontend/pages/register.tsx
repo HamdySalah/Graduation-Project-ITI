@@ -6,7 +6,6 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  role: useState('');
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState<'NURSE' | 'PATIENT'>('PATIENT');
   const [licenseNumber, setLicenseNumber] = useState('');
@@ -28,7 +27,10 @@ export default function Register() {
       password,
       phone,
       role,
-      coordinates: [31.233, 30.033], // Default to Cairo for now
+      location: {
+        type: 'Point',
+        coordinates: [31.233, 30.033],
+      },
       ...(role === 'NURSE' && {
         licenseNumber,
         yearsOfExperience: parseInt(yearsOfExperience, 10),
@@ -44,133 +46,151 @@ export default function Register() {
 
       if (!response.ok) throw new Error('Registration failed');
       const data = await response.json();
-      localStorage.setItem('token', data.access_token); // Store token
-      window.location.href = '/'; // Redirect to home
+      localStorage.setItem('token', data.access_token); 
+      window.location.href = '/'; 
     } catch (err) {
       setError(err.message || 'An error occurred');
     }
   };
 
   return (
-    <div className="flex h-screen">
-      <div className="w-1/2 bg-blue-200 flex items-center justify-center">
-        <img src="/imagenurse3.jpeg" alt="Register Background" className="max-w-full max-h-full" />
-      </div>
-      <div className="w-1/2 flex items-center justify-center bg-gray-100">
-        <div className="w-full max-w-md p-8 bg-white shadow-lg rounded-lg">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold">register</h2>
-            <div className="text-2xl">logo</div>
+    <div className="flex h-screen bg-gradient-to-r from-blue-400 via-white-500 to-white-500">
+      <div className="w-full flex items-center justify-center">
+        <div className="container mx-auto p-6 bg-white/80 backdrop-blur-md rounded-xl shadow-2xl flex flex-col md:flex-row items-center">
+          <div className="w-full md:w-1/2 p-4">
+            <img src="/imagenurse3.jpeg" alt="Register Background" className="w-full h-auto rounded-lg transform hover:scale-105 transition duration-300" />
           </div>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Name</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
-                required
-              />
+          <div className="w-full md:w-1/2 p-8 relative">
+            <div className="flex justify-between items-center mb-6">
+              <Link href="/" className="text-blue-600 hover:text-blue-800">
+                <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                  <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </Link>
+              <div className="text-3xl text-gray-800 font-cursive">logo</div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Confirm password</label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Phone</label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">I am</label>
-              <div className="flex space-x-4 mt-1">
-                <label>
-                  <input
-                    type="radio"
-                    value="NURSE"
-                    checked={role === 'NURSE'}
-                    onChange={(e) => setRole(e.target.value as 'NURSE' | 'PATIENT')}
-                  /> Nurse
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    value="PATIENT"
-                    checked={role === 'PATIENT'}
-                    onChange={(e) => setRole(e.target.value as 'NURSE' | 'PATIENT')}
-                  /> Patient
-                </label>
+            <h2 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 text-center mb-6">Register</h2>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="block text-lg font-semibold text-gray-700">Name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="mt-2 w-full border-b-2 border-purple-300 focus:border-purple-600 focus:outline-none text-xl text-gray-800 placeholder-gray-400 transition duration-300"
+                  required
+                  placeholder="Enter your name"
+                />
               </div>
-            </div>
-            {role === 'NURSE' && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">License Number</label>
-                  <input
-                    type="text"
-                    value={licenseNumber}
-                    onChange={(e) => setLicenseNumber(e.target.value)}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
-                    required
-                  />
+              <div>
+                <label className="block text-lg font-semibold text-gray-700">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="mt-2 w-full border-b-2 border-purple-300 focus:border-purple-600 focus:outline-none text-xl text-gray-800 placeholder-gray-400 transition duration-300"
+                  required
+                  placeholder="Enter your email"
+                />
+              </div>
+              <div>
+                <label className="block text-lg font-semibold text-gray-700">Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="mt-2 w-full border-b-2 border-purple-300 focus:border-purple-600 focus:outline-none text-xl text-gray-800 placeholder-gray-400 transition duration-300"
+                  required
+                  placeholder="Enter your password"
+                />
+              </div>
+              <div>
+                <label className="block text-lg font-semibold text-gray-700">Confirm Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="mt-2 w-full border-b-2 border-purple-300 focus:border-purple-600 focus:outline-none text-xl text-gray-800 placeholder-gray-400 transition duration-300"
+                  required
+                  placeholder="Confirm your password"
+                />
+              </div>
+              <div>
+                <label className="block text-lg font-semibold text-gray-700">Phone</label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="mt-2 w-full border-b-2 border-purple-300 focus:border-purple-600 focus:outline-none text-xl text-gray-800 placeholder-gray-400 transition duration-300"
+                  required
+                  placeholder="Enter your phone"
+                />
+              </div>
+              <div>
+                <label className="block text-lg font-semibold text-gray-700">I am</label>
+                <div className="flex space-x-4 mt-2">
+                  <label>
+                    <input
+                      type="radio"
+                      value="NURSE"
+                      checked={role === 'NURSE'}
+                      onChange={(e) => setRole(e.target.value as 'NURSE' | 'PATIENT')}
+                      className="mr-2"
+                    /> 
+                    <span className="text-xl text-gray-800">Nurse</span>
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      value="PATIENT"
+                      checked={role === 'PATIENT'}
+                      onChange={(e) => setRole(e.target.value as 'NURSE' | 'PATIENT')}
+                      className="mr-2"
+                    /> 
+                    <span className="text-xl text-gray-800">Patient</span>
+                  </label>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Years of Experience</label>
-                  <input
-                    type="number"
-                    value={yearsOfExperience}
-                    onChange={(e) => setYearsOfExperience(e.target.value)}
-                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm"
-                    required
-                  />
-                </div>
-              </>
-            )}
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-            <p className="text-sm text-gray-600">Are you already have account? <Link href="/login" className="text-blue-500">Login</Link></p>
-            <button
-              type="submit"
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
-            >
-              register
-            </button>
-            <div className="flex justify-center space-x-4">
-              <button className="text-blue-600">f</button>
-              <button className="text-black">G</button>
-            </div>
-          </form>
+              </div>
+              {role === 'NURSE' && (
+                <>
+                  <div>
+                    <label className="block text-lg font-semibold text-gray-700">License Number</label>
+                    <input
+                      type="text"
+                      value={licenseNumber}
+                      onChange={(e) => setLicenseNumber(e.target.value)}
+                      className="mt-2 w-full border-b-2 border-purple-300 focus:border-purple-600 focus:outline-none text-xl text-gray-800 placeholder-gray-400 transition duration-300"
+                      required
+                      placeholder="Enter license number"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-lg font-semibold text-gray-700">Years of Experience</label>
+                    <input
+                      type="number"
+                      value={yearsOfExperience}
+                      onChange={(e) => setYearsOfExperience(e.target.value)}
+                      className="mt-2 w-full border-b-2 border-purple-300 focus:border-purple-600 focus:outline-none text-xl text-gray-800 placeholder-gray-400 transition duration-300"
+                      required
+                      placeholder="Enter years of experience"
+                    />
+                  </div>
+                </>
+              )}
+              {error && <p className="text-red-500 text-md font-medium">{error}</p>}
+              <p className="text-md text-gray-600">Already have an account? <Link href="/login" className="text-purple-600 hover:text-purple-800 font-medium">Login</Link></p>
+              <button
+                type="submit"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-full hover:from-blue-700 hover:to-purple-700 text-lg font-semibold shadow-lg transform hover:scale-105 transition duration-300"
+              >
+                Register
+              </button>
+              <div className="flex justify-center space-x-4 mt-4">
+                <button className="text-blue-600 text-2xl hover:text-blue-800 transition">f</button>
+                <button className="text-black text-2xl hover:text-gray-800 transition">G</button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </div>
