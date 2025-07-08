@@ -1,23 +1,73 @@
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
+import { useAuth } from '../lib/auth';
+import { apiService } from '../lib/api';
+
+const SPECIALIZATIONS = [
+  { value: 'general', label: 'General Nursing' },
+  { value: 'pediatric', label: 'Pediatric Care' },
+  { value: 'geriatric', label: 'Geriatric Care' },
+  { value: 'icu', label: 'ICU Care' },
+  { value: 'emergency', label: 'Emergency Care' },
+  { value: 'surgical', label: 'Surgical Care' },
+  { value: 'psychiatric', label: 'Psychiatric Care' },
+  { value: 'oncology', label: 'Oncology Care' },
+];
 
 export default function Register() {
+  const router = useRouter();
+  const { user } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState<'NURSE' | 'PATIENT'>('PATIENT');
+  const [address, setAddress] = useState('');
+  const [role, setRole] = useState<'nurse' | 'patient'>('patient');
+
+  // Nurse-specific fields
   const [licenseNumber, setLicenseNumber] = useState('');
   const [yearsOfExperience, setYearsOfExperience] = useState('');
+  const [specializations, setSpecializations] = useState<string[]>(['general']);
+  const [education, setEducation] = useState('Bachelor of Nursing');
+  const [certifications, setCertifications] = useState('');
+  const [hourlyRate, setHourlyRate] = useState('50');
+  const [bio, setBio] = useState('');
+  const [languages, setLanguages] = useState('Arabic, English');
+
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      router.push('/dashboard');
+    }
+  }, [user, router]);
+
+  const handleSpecializationToggle = (specialization: string) => {
+    setSpecializations(prev =>
+      prev.includes(specialization)
+        ? prev.filter(s => s !== specialization)
+        : [...prev, specialization]
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
+    if (role === 'nurse' && (!licenseNumber || !yearsOfExperience)) {
+      setError('License number and years of experience are required for nurses');
+      setLoading(false);
       return;
     }
 
@@ -27,29 +77,40 @@ export default function Register() {
       password,
       phone,
       role,
-      location: {
-        type: 'Point',
-        coordinates: [31.233, 30.033],
-      },
-      ...(role === 'NURSE' && {
+      coordinates: [31.233, 30.033], // Default coordinates - Cairo
+      address: address || 'Cairo, Egypt',
+      ...(role === 'nurse' && {
         licenseNumber,
         yearsOfExperience: parseInt(yearsOfExperience, 10),
+        specializations,
+        education,
+        certifications: certifications.split(',').map(cert => cert.trim()).filter(cert => cert),
+        hourlyRate: parseFloat(hourlyRate),
+        bio: bio || 'Experienced nurse ready to help patients',
+        languages: languages.split(',').map(lang => lang.trim()).filter(lang => lang),
       }),
     };
 
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(registerData),
-      });
+      const response: any = await apiService.register(registerData);
+      console.log('Registration response:', response);
 
-      if (!response.ok) throw new Error('Registration failed');
-      const data = await response.json();
-      localStorage.setItem('token', data.access_token); 
-      window.location.href = '/'; 
-    } catch (err) {
-      setError(err.message || 'An error occurred');
+      // The backend returns: { success: true, data: { access_token: "...", user: {...} } }
+      let token: string;
+      if (response.data && response.data.access_token) {
+        token = response.data.access_token;
+      } else if (response.access_token) {
+        token = response.access_token;
+      } else {
+        throw new Error('No token received from registration');
+      }
+
+      localStorage.setItem('token', token);
+      router.push('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Registration failed');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -127,31 +188,42 @@ export default function Register() {
                 />
               </div>
               <div>
+                <label className="block text-lg font-semibold text-gray-700">Address</label>
+                <input
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  className="mt-2 w-full border-b-2 border-purple-300 focus:border-purple-600 focus:outline-none text-xl text-gray-800 placeholder-gray-400 transition duration-300"
+                  required
+                  placeholder="Enter your address"
+                />
+              </div>
+              <div>
                 <label className="block text-lg font-semibold text-gray-700">I am</label>
                 <div className="flex space-x-4 mt-2">
                   <label>
                     <input
                       type="radio"
-                      value="NURSE"
-                      checked={role === 'NURSE'}
-                      onChange={(e) => setRole(e.target.value as 'NURSE' | 'PATIENT')}
+                      value="nurse"
+                      checked={role === 'nurse'}
+                      onChange={(e) => setRole(e.target.value as 'nurse' | 'patient')}
                       className="mr-2"
-                    /> 
+                    />
                     <span className="text-xl text-gray-800">Nurse</span>
                   </label>
                   <label>
                     <input
                       type="radio"
-                      value="PATIENT"
-                      checked={role === 'PATIENT'}
-                      onChange={(e) => setRole(e.target.value as 'NURSE' | 'PATIENT')}
+                      value="patient"
+                      checked={role === 'patient'}
+                      onChange={(e) => setRole(e.target.value as 'nurse' | 'patient')}
                       className="mr-2"
-                    /> 
+                    />
                     <span className="text-xl text-gray-800">Patient</span>
                   </label>
                 </div>
               </div>
-              {role === 'NURSE' && (
+              {role === 'nurse' && (
                 <>
                   <div>
                     <label className="block text-lg font-semibold text-gray-700">License Number</label>
@@ -172,7 +244,80 @@ export default function Register() {
                       onChange={(e) => setYearsOfExperience(e.target.value)}
                       className="mt-2 w-full border-b-2 border-purple-300 focus:border-purple-600 focus:outline-none text-xl text-gray-800 placeholder-gray-400 transition duration-300"
                       required
+                      min="0"
+                      max="50"
                       placeholder="Enter years of experience"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-lg font-semibold text-gray-700">Education</label>
+                    <input
+                      type="text"
+                      value={education}
+                      onChange={(e) => setEducation(e.target.value)}
+                      className="mt-2 w-full border-b-2 border-purple-300 focus:border-purple-600 focus:outline-none text-xl text-gray-800 placeholder-gray-400 transition duration-300"
+                      placeholder="e.g., Bachelor of Nursing"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-lg font-semibold text-gray-700">Hourly Rate (EGP)</label>
+                    <input
+                      type="number"
+                      value={hourlyRate}
+                      onChange={(e) => setHourlyRate(e.target.value)}
+                      className="mt-2 w-full border-b-2 border-purple-300 focus:border-purple-600 focus:outline-none text-xl text-gray-800 placeholder-gray-400 transition duration-300"
+                      min="0"
+                      step="0.01"
+                      placeholder="Enter hourly rate"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-lg font-semibold text-gray-700">Specializations</label>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {SPECIALIZATIONS.map(spec => (
+                        <button
+                          key={spec.value}
+                          type="button"
+                          onClick={() => handleSpecializationToggle(spec.value)}
+                          className={`px-3 py-1 rounded-full text-sm ${
+                            specializations.includes(spec.value)
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          }`}
+                        >
+                          {spec.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-lg font-semibold text-gray-700">Bio</label>
+                    <textarea
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      className="mt-2 w-full border-2 border-purple-300 focus:border-purple-600 focus:outline-none text-lg text-gray-800 placeholder-gray-400 transition duration-300 rounded-md p-2"
+                      rows={3}
+                      placeholder="Tell patients about your experience and approach to care..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-lg font-semibold text-gray-700">Languages (comma-separated)</label>
+                    <input
+                      type="text"
+                      value={languages}
+                      onChange={(e) => setLanguages(e.target.value)}
+                      className="mt-2 w-full border-b-2 border-purple-300 focus:border-purple-600 focus:outline-none text-xl text-gray-800 placeholder-gray-400 transition duration-300"
+                      placeholder="e.g., Arabic, English, French"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-lg font-semibold text-gray-700">Certifications (comma-separated)</label>
+                    <input
+                      type="text"
+                      value={certifications}
+                      onChange={(e) => setCertifications(e.target.value)}
+                      className="mt-2 w-full border-b-2 border-purple-300 focus:border-purple-600 focus:outline-none text-xl text-gray-800 placeholder-gray-400 transition duration-300"
+                      placeholder="e.g., CPR Certified, BLS, ACLS"
                     />
                   </div>
                 </>
@@ -181,9 +326,10 @@ export default function Register() {
               <p className="text-md text-gray-600">Already have an account? <Link href="/login" className="text-purple-600 hover:text-purple-800 font-medium">Login</Link></p>
               <button
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-full hover:from-blue-700 hover:to-purple-700 text-lg font-semibold shadow-lg transform hover:scale-105 transition duration-300"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-full hover:from-blue-700 hover:to-purple-700 text-lg font-semibold shadow-lg transform hover:scale-105 transition duration-300 disabled:opacity-50"
               >
-                Register
+                {loading ? 'Registering...' : 'Register'}
               </button>
               <div className="flex justify-center space-x-4 mt-4">
                 <button className="text-blue-600 text-2xl hover:text-blue-800 transition">f</button>

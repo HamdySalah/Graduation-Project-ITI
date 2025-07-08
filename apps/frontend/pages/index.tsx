@@ -1,3 +1,6 @@
+import { useEffect } from 'react';
+import { useAuth } from '../lib/auth';
+import { useRouter } from 'next/router';
 import Navbar from '../components/Navbar';
 import HeroSection from '../components/HeroSection';
 import TestimonialSection from '../components/TestimonialSection';
@@ -9,6 +12,22 @@ import PlatformFeatures from '../components/PlatformFeatures';
 import VerificationProcess from '../components/VerificationProcess';
 
 export default function Home() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, loading, router]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
   return (
     <div className="scroll-smooth">
       <Navbar />
