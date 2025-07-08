@@ -1,28 +1,35 @@
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../lib/auth';
+import { useRouter } from 'next/router';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const { login, user } = useAuth();
+  const router = useRouter();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      router.push('/dashboard');
+    }
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) throw new Error('Login failed');
-      const data = await response.json();
-      localStorage.setItem('token', data.access_token); 
-      window.location.href = '/'; 
-    } catch (err) {
-      setError(err.message || 'An error occurred');
+      await login(email, password);
+      router.push('/dashboard');
+    } catch (err: any) {
+      setError(err.message || 'Invalid email or password');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -70,9 +77,10 @@ export default function Login() {
               <p className="text-sm text-gray-600 text-center">Don’t have an account? <Link href="/register" className="text-purple-600 hover:text-purple-800">Register</Link></p>
               <button
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-700 text-white py-2 px-4 rounded-full hover:bg-purple-800 text-lg font-semibold"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-700 text-white py-2 px-4 rounded-full hover:bg-purple-800 text-lg font-semibold disabled:opacity-50"
               >
-                Login
+                {loading ? 'Logging in...' : 'Login'}
               </button>
               <div className="flex justify-center space-x-4 mt-4">
                 <button className="text-blue-600 text-xl hover:text-blue-800">f</button>
