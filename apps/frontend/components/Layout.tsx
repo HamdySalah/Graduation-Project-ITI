@@ -1,7 +1,6 @@
 import { ReactNode } from 'react';
 import { useAuth } from '../lib/auth';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
 
 interface LayoutProps {
   children: ReactNode;
@@ -10,20 +9,8 @@ interface LayoutProps {
 
 export default function Layout({ children, title }: LayoutProps) {
   const { user, logout } = useAuth();
-  const router = useRouter();
 
-  const navigation = [
-    { name: 'Dashboard', href: '/dashboard', roles: ['patient', 'nurse', 'admin'] },
-    { name: 'Find Nurses', href: '/nurses', roles: ['patient'] },
-    { name: 'My Requests', href: '/requests', roles: ['patient', 'nurse'] },
-    { name: 'Create Request', href: '/requests/create', roles: ['patient'] },
-    { name: 'Admin Panel', href: '/admin', roles: ['admin'] },
-    { name: 'Profile', href: '/profile', roles: ['patient', 'nurse', 'admin'] },
-  ];
 
-  const filteredNavigation = navigation.filter(item => 
-    !user || item.roles.includes(user.role)
-  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -35,46 +22,48 @@ export default function Layout({ children, title }: LayoutProps) {
               <Link href="/" className="flex-shrink-0">
                 <span className="text-2xl font-bold text-blue-600">NursePlatform</span>
               </Link>
-              
-              {user && (
-                <div className="hidden md:ml-6 md:flex md:space-x-8">
-                  {filteredNavigation.map((item) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={`${
-                        router.pathname === item.href
-                          ? 'border-blue-500 text-gray-900'
-                          : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                      } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
-                    >
-                      {item.name}
-                    </Link>
-                  ))}
-                </div>
-              )}
             </div>
-
             <div className="flex items-center space-x-4">
               {user ? (
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
+                <div className="relative group">
+                  <button className="flex items-center space-x-2 focus:outline-none">
                     <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                      <span className="text-white text-sm font-medium">
-                        {user.name.charAt(0).toUpperCase()}
-                      </span>
+                      <span className="text-white text-sm font-medium">{user.name.charAt(0).toUpperCase()}</span>
                     </div>
-                    <div className="hidden md:block">
-                      <p className="text-sm font-medium text-gray-700">{user.name}</p>
-                      <p className="text-xs text-gray-500 capitalize">{user.role}</p>
+                    <span className="text-gray-700 font-medium">{user.name}</span>
+                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-50">
+                    <div className="py-1">
+                      <Link href="/profile" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Profile</Link>
+                      <Link href="/dashboard" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Dashboard</Link>
+                      {user.role === 'patient' && (
+                        <>
+                          <Link href="/requests" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">My Requests</Link>
+                          <Link href="/requests/create" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Create Request</Link>
+                          <Link href="/nurses" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Find Nurses</Link>
+                        </>
+                      )}
+                      {user.role === 'nurse' && (
+                        <>
+                          <Link href="/requests" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">My Requests</Link>
+                        </>
+                      )}
+                      {user.role === 'admin' && (
+                        <Link href="/admin" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Admin Panel</Link>
+                      )}
+                      <button
+                        onClick={logout}
+                        className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100 flex items-center"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-1">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M18 12H9m0 0l3-3m-3 3l3 3" />
+                        </svg>
+                        Logout
+                      </button>
                     </div>
                   </div>
-                  <button
-                    onClick={logout}
-                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                  >
-                    Logout
-                  </button>
                 </div>
               ) : (
                 <div className="flex space-x-4">

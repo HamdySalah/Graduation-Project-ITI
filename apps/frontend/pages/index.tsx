@@ -1,6 +1,4 @@
-import { useEffect } from 'react';
 import { useAuth } from '../lib/auth';
-import { useRouter } from 'next/router';
 import Navbar from '../components/Navbar';
 import HeroSection from '../components/HeroSection';
 import TestimonialSection from '../components/TestimonialSection';
@@ -12,14 +10,7 @@ import PlatformFeatures from '../components/PlatformFeatures';
 import VerificationProcess from '../components/VerificationProcess';
 
 export default function Home() {
-  const { user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && user) {
-      router.push('/dashboard');
-    }
-  }, [user, loading, router]);
+  const { loading } = useAuth();
 
   if (loading) {
     return (
