@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../lib/auth';
 import Layout, { Card, LoadingSpinner } from '../../components/Layout';
+import apiService from '../../lib/api';
 
 interface AnalyticsData {
   userGrowth: {
@@ -50,41 +51,41 @@ export default function AdminAnalytics() {
   const loadAnalytics = async () => {
     try {
       setLoading(true);
-      // Mock data - replace with actual API call
-      const mockData: AnalyticsData = {
+      setError('');
+
+      console.log('Loading analytics data for time range:', timeRange);
+
+      // Fetch real analytics data from API
+      const analyticsData = await apiService.getAnalytics(timeRange);
+      console.log('Received analytics data:', analyticsData);
+
+      setAnalytics(analyticsData as AnalyticsData);
+    } catch (err: any) {
+      console.error('Failed to load analytics:', err);
+      setError(err.message || 'Failed to load analytics data');
+
+      // Fallback to empty data structure
+      setAnalytics({
         userGrowth: {
-          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-          patients: [120, 150, 180, 220, 280, 320],
-          nurses: [30, 45, 60, 75, 95, 110],
+          labels: [],
+          patients: [],
+          nurses: [],
         },
         requestStats: {
-          total: 1250,
-          completed: 980,
-          cancelled: 120,
-          pending: 150,
-          successRate: 78.4,
+          total: 0,
+          completed: 0,
+          cancelled: 0,
+          pending: 0,
+          successRate: 0,
         },
         revenueData: {
-          totalRevenue: 125000,
-          monthlyRevenue: [15000, 18000, 22000, 25000, 28000, 32000],
-          averageJobValue: 127.5,
+          totalRevenue: 0,
+          monthlyRevenue: [],
+          averageJobValue: 0,
         },
-        topNurses: [
-          { id: '1', name: 'Sarah Ahmed', rating: 4.9, completedJobs: 85, totalEarnings: 12500 },
-          { id: '2', name: 'Fatma Hassan', rating: 4.8, completedJobs: 72, totalEarnings: 11200 },
-          { id: '3', name: 'Mona Ali', rating: 4.7, completedJobs: 68, totalEarnings: 10800 },
-        ],
-        geographicData: [
-          { area: 'New Cairo', requestCount: 245, nurseCount: 28 },
-          { area: 'Maadi', requestCount: 198, nurseCount: 22 },
-          { area: 'Zamalek', requestCount: 156, nurseCount: 18 },
-          { area: 'Heliopolis', requestCount: 134, nurseCount: 15 },
-        ],
-      };
-      
-      setAnalytics(mockData);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load analytics');
+        topNurses: [],
+        geographicData: [],
+      });
     } finally {
       setLoading(false);
     }

@@ -55,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!token) {
         console.log('No token found, user not authenticated');
+        setUser(null);
         setLoading(false);
         return;
       }
@@ -63,11 +64,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userData = await apiService.getProfile();
       console.log('Profile fetched successfully:', userData);
       setUser(userData as User);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Auth check failed:', error);
-      console.log('Removing invalid token');
+      console.log('Removing invalid token and redirecting to login');
+
+      // Clear invalid authentication state
       localStorage.removeItem('token');
       setUser(null);
+
+      // Don't throw the error, just handle it gracefully
+      if (typeof window !== 'undefined') {
+        // Only redirect if we're in the browser and not already on login/register pages
+        const currentPath = window.location.pathname;
+        if (!currentPath.includes('/login') && !currentPath.includes('/register') && !currentPath.includes('/')) {
+          console.log('Redirecting to login due to auth failure');
+          window.location.href = '/login';
+        }
+      }
     } finally {
       setLoading(false);
     }

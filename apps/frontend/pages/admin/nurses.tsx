@@ -62,7 +62,17 @@ export default function AdminNurses() {
     }
   };
 
+  const handleDeclineNurse = async (nurseId: string) => {
+    try {
+      await apiService.declineNurse(nurseId);
+      await loadNurses();
+    } catch (err: any) {
+      setError(err.message || 'Failed to decline nurse');
+    }
+  };
+
   const getFilteredNurses = () => {
+    if (!Array.isArray(nurses)) return [];
     if (filter === 'all') return nurses;
     return nurses.filter(nurse => nurse.status === filter);
   };
@@ -121,6 +131,7 @@ export default function AdminNurses() {
                 key={nurse.id}
                 nurse={nurse}
                 onVerify={handleVerifyNurse}
+                onDecline={handleDeclineNurse}
               />
             ))}
           </div>
@@ -139,10 +150,12 @@ export default function AdminNurses() {
 // Nurse Card Component
 function NurseCard({ 
   nurse, 
-  onVerify 
+  onVerify, 
+  onDecline 
 }: { 
   nurse: Nurse; 
-  onVerify: (id: string) => void;
+  onVerify: (id: string) => void; 
+  onDecline: (id: string) => void; 
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -255,15 +268,22 @@ function NurseCard({
         >
           {expanded ? 'Show Less' : 'Show More'}
         </button>
-
         <div className="flex space-x-2">
           {nurse.status === 'pending' && (
-            <button
-              onClick={() => onVerify(nurse.id)}
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm"
-            >
-              Verify Nurse
-            </button>
+            <>
+              <button
+                onClick={() => onVerify(nurse.id)}
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm"
+              >
+                Verify Nurse
+              </button>
+              <button
+                onClick={() => onDecline(nurse.id)}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm"
+              >
+                Decline
+              </button>
+            </>
           )}
           <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm">
             View Details
