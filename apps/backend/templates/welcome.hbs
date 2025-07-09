@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Nurse Platform</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        .content {
+            background: #f9f9f9;
+            padding: 30px;
+            border-radius: 0 0 10px 10px;
+        }
+        .button {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏥 Welcome to Nurse Platform!</h1>
+    </div>
+    
+    <div class="content">
+        <p>Hello <strong>{{name}}</strong>,</p>
+        
+        <p>🎉 Congratulations! Your email has been successfully verified and your account is now active.</p>
+        
+        <p>You can now access all features of the Nurse Platform:</p>
+        <ul>
+            <li>✅ Browse and connect with qualified nurses</li>
+            <li>✅ Request nursing services</li>
+            <li>✅ Manage your profile and preferences</li>
+            <li>✅ Track your service history</li>
+        </ul>
+        
+        <div style="text-align: center;">
+            <a href="{{frontendUrl}}" class="button">Start Using Platform</a>
+        </div>
+        
+        <p>If you have any questions or need assistance, our support team is here to help.</p>
+        
+        <p>Thank you for choosing Nurse Platform!</p>
+        
+        <p>Best regards,<br>The Nurse Platform Team</p>
+    </div>
+    
+    <div class="footer">
+        <p>© 2024 Nurse Platform. All rights reserved.</p>
+    </div>
+</body>
+</html>

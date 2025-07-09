@@ -35,6 +35,15 @@ export class User {
   @Prop({ default: UserStatus.PENDING, enum: UserStatus })
   status?: UserStatus;
 
+  @Prop({ default: false })
+  isEmailVerified?: boolean;
+
+  @Prop()
+  emailVerificationToken?: string;
+
+  @Prop()
+  emailVerificationExpires?: Date;
+
   @Prop({
     type: {
       type: String,

@@ -8,7 +8,8 @@ import {
   Request,
   HttpCode,
   HttpStatus,
-  ValidationPipe
+  ValidationPipe,
+  Query
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -112,5 +113,69 @@ export class AuthController {
   })
   async updateProfile(@Body(ValidationPipe) updateData: UpdateProfileDto, @Request() req: any) {
     return this.authService.updateProfile(req.user, updateData);
+  }
+
+  @Get('verify-email')
+  @ApiOperation({
+    summary: 'Verify email address',
+    description: 'Verify user email address using the token sent via email'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Email verified successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Email verified successfully' },
+        user: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            name: { type: 'string' },
+            email: { type: 'string' },
+            role: { type: 'string' },
+            isEmailVerified: { type: 'boolean', example: true }
+          }
+        }
+      }
+    }
+  })
+  @ApiBadRequestResponse({
+    description: 'Invalid or expired verification token'
+  })
+  async verifyEmail(@Query('token') token: string) {
+    return this.authService.verifyEmail(token);
+  }
+
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Resend verification email',
+    description: 'Resend email verification link to user\'s email address'
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        email: { type: 'string', format: 'email', example: 'user@example.com' }
+      },
+      required: ['email']
+    }
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Verification email sent successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Verification email sent successfully' }
+      }
+    }
+  })
+  @ApiBadRequestResponse({
+    description: 'Email is already verified or user not found'
+  })
+  async resendVerificationEmail(@Body('email') email: string) {
+    return this.authService.resendVerificationEmail(email);
   }
 }

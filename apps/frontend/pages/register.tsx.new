@@ -16,13 +16,7 @@ export default function Register() {
   
   // Validate phone number (Egyptian format)
   const validateEgyptianPhone = (phone: string) => {
-    // Only accept Egyptian local mobile numbers (01X followed by 8 digits)
-    // Valid formats: 010, 011, 012, 015 followed by 8 digits
-    const egyptianPhoneRegex = /^01[0125]\d{8}$/;
-    
-    // Debug log for phone validation
-    console.log('Validating phone:', phone, egyptianPhoneRegex.test(phone));
-    
+    const egyptianPhoneRegex = /^01[0125][0-9]{8}$/;
     return egyptianPhoneRegex.test(phone);
   };
   
@@ -199,23 +193,23 @@ export default function Register() {
               <div>
                 <label className="block text-lg font-semibold text-gray-700">I am</label>
                 <div className="flex space-x-4 mt-2">
-                  <label className="flex items-center">
+                  <label>
                     <input
                       type="radio"
                       value="nurse"
                       checked={role === 'nurse'}
                       onChange={(e) => setRole(e.target.value as 'nurse' | 'patient')}
-                      className="mr-2 h-5 w-5 text-purple-600"
+                      className="mr-2"
                     /> 
                     <span className="text-xl text-gray-800">Nurse</span>
                   </label>
-                  <label className="flex items-center">
+                  <label>
                     <input
                       type="radio"
                       value="patient"
                       checked={role === 'patient'}
                       onChange={(e) => setRole(e.target.value as 'nurse' | 'patient')}
-                      className="mr-2 h-5 w-5 text-purple-600"
+                      className="mr-2"
                     /> 
                     <span className="text-xl text-gray-800">Patient</span>
                   </label>

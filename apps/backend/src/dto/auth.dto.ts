@@ -51,11 +51,13 @@ export class RegisterDto {
   password: string;
 
   @ApiProperty({
-    description: 'Phone number of the user',
-    example: '+1234567890',
+    description: 'Phone number of the user (Egyptian format: 01X followed by 8 digits)',
+    example: '01012345678',
   })
   @IsString()
-  @IsPhoneNumber(null, { message: 'Please provide a valid phone number' })
+  @Matches(/^01[0125][0-9]{8}$/, {
+    message: 'Phone number must be a valid Egyptian mobile number (e.g., 01012345678)',
+  })
   phone: string;
 
   @ApiProperty({
@@ -258,12 +260,14 @@ export class UpdateProfileDto {
   name?: string;
 
   @ApiPropertyOptional({
-    description: 'Updated phone number',
-    example: '+1234567890',
+    description: 'Updated phone number (Egyptian mobile format)',
+    example: '01012345678',
   })
   @IsOptional()
   @IsString()
-  @IsPhoneNumber(null, { message: 'Please provide a valid phone number' })
+  @Matches(/^01[0125][0-9]{8}$/, {
+    message: 'Please provide a valid Egyptian mobile number (01X format, 11 digits)'
+  })
   phone?: string;
 
   @ApiPropertyOptional({

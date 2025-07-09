@@ -1,28 +1,40 @@
 import Link from 'next/link';
 import { useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [formErrors, setFormErrors] = useState<{email?: string; password?: string}>({});
+  const { login, isLoading, error, clearError } = useAuth();
+
+  const validateForm = () => {
+    const errors: {email?: string; password?: string} = {};
+    
+    // Email validation
+    if (!email) {
+      errors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      errors.email = 'Email is invalid';
+    }
+    
+    // Password validation
+    if (!password) {
+      errors.password = 'Password is required';
+    } else if (password.length < 8) {
+      errors.password = 'Password must be at least 8 characters long';
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) throw new Error('Login failed');
-      const data = await response.json();
-      localStorage.setItem('token', data.access_token); 
-      window.location.href = '/'; 
-    } catch (err) {
-      setError(err.message || 'An error occurred');
+    
+    if (validateForm()) {
+      clearError();
+      await login(email, password);
     }
   };
 
@@ -50,10 +62,12 @@ export default function Login() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="mt-1 block w-full border-b border-purple-300 focus:border-purple-500 focus:outline-none text-lg text-gray-800 placeholder-gray-400"
-                  required
+                  className={`mt-1 block w-full border-b ${formErrors.email ? 'border-red-500' : 'border-purple-300'} focus:border-purple-500 focus:outline-none text-lg text-gray-800 placeholder-gray-400`}
                   placeholder="Enter your email"
                 />
+                {formErrors.email && (
+                  <p className="text-red-500 text-xs mt-1">{formErrors.email}</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Password</label>
@@ -61,22 +75,27 @@ export default function Login() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="mt-1 block w-full border-b border-purple-300 focus:border-purple-500 focus:outline-none text-lg text-gray-800 placeholder-gray-400"
-                  required
+                  className={`mt-1 block w-full border-b ${formErrors.password ? 'border-red-500' : 'border-purple-300'} focus:border-purple-500 focus:outline-none text-lg text-gray-800 placeholder-gray-400`}
                   placeholder="Enter your password"
                 />
+                {formErrors.password && (
+                  <p className="text-red-500 text-xs mt-1">{formErrors.password}</p>
+                )}
               </div>
               {error && <p className="text-red-500 text-sm">{error}</p>}
               <p className="text-sm text-gray-600 text-center">Don’t have an account? <Link href="/register" className="text-purple-600 hover:text-purple-800">Register</Link></p>
               <button
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-700 text-white py-2 px-4 rounded-full hover:bg-purple-800 text-lg font-semibold"
+                disabled={isLoading}
+                className={`w-full bg-gradient-to-r from-blue-600 to-purple-700 text-white py-2 px-4 rounded-full text-lg font-semibold ${
+                  isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-purple-800'
+                }`}
               >
-                Login
+                {isLoading ? 'Logging in...' : 'Login'}
               </button>
               <div className="flex justify-center space-x-4 mt-4">
-                <button className="text-blue-600 text-xl hover:text-blue-800">f</button>
-                <button className="text-black text-xl hover:text-gray-800">G</button>
+                <button type="button" className="text-blue-600 text-xl hover:text-blue-800">f</button>
+                <button type="button" className="text-black text-xl hover:text-gray-800">G</button>
               </div>
             </form>
           </div>
