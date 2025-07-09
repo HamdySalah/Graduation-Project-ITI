@@ -185,7 +185,7 @@ status: (role.toLowerCase() === UserRole.ADMIN.toLowerCase() || role.toLowerCase
     }
 
     let profile: any = {
-      id: userProfile._id.toString(),
+      id: (userProfile._id as string).toString(),
       name: userProfile.name,
       email: userProfile.email,
       phone: userProfile.phone,
@@ -273,7 +273,7 @@ status: (role.toLowerCase() === UserRole.ADMIN.toLowerCase() || role.toLowerCase
       return {
         message: 'Profile updated successfully',
         user: {
-          id: updatedUser._id.toString(),
+          id: (updatedUser._id as string).toString(),
           name: updatedUser.name!,
           email: updatedUser.email!,
           role: updatedUser.role!,

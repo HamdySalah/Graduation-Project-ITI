@@ -28,7 +28,7 @@ export class RegisterDto {
   @IsString()
   @MinLength(2, { message: 'Name must be at least 2 characters long' })
   @MaxLength(100, { message: 'Name must not exceed 100 characters' })
-  name: string;
+  name!: string;
 
   @ApiProperty({
     description: 'Email address of the user',
@@ -36,7 +36,7 @@ export class RegisterDto {
     format: 'email',
   })
   @IsEmail({}, { message: 'Please provide a valid email address' })
-  email: string;
+  email!: string;
 
   @ApiProperty({
     description: 'Password for the account',
@@ -48,15 +48,15 @@ export class RegisterDto {
   @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, {
     message: 'Password must contain at least one lowercase letter, one uppercase letter, and one number',
   })
-  password: string;
+  password!: string;
 
   @ApiProperty({
     description: 'Phone number of the user',
     example: '+1234567890',
   })
   @IsString()
-  @IsPhoneNumber(null, { message: 'Please provide a valid phone number' })
-  phone: string;
+  @IsPhoneNumber(undefined, { message: 'Please provide a valid phone number' })
+  phone!: string;
 
   @ApiProperty({
     description: 'Role of the user in the system',
@@ -64,7 +64,7 @@ export class RegisterDto {
     example: UserRole.PATIENT,
   })
   @IsEnum(UserRole, { message: 'Role must be either patient, nurse, or admin' })
-  role: UserRole;
+  role!: UserRole;
 
   @ApiProperty({
     description: 'Geographic coordinates [longitude, latitude]',
@@ -77,7 +77,7 @@ export class RegisterDto {
   @ArrayMinSize(2, { message: 'Coordinates must contain exactly 2 values' })
   @ArrayMaxSize(2, { message: 'Coordinates must contain exactly 2 values' })
   @IsNumber({}, { each: true, message: 'Coordinates must be valid numbers' })
-  coordinates: [number, number]; // [longitude, latitude]
+  coordinates!: [number, number]; // [longitude, latitude]
 
   @ApiPropertyOptional({
     description: 'Physical address of the user',
@@ -187,7 +187,7 @@ export class LoginDto {
     format: 'email',
   })
   @IsEmail({}, { message: 'Please provide a valid email address' })
-  email: string;
+  email!: string;
 
   @ApiProperty({
     description: 'Password for login',
@@ -195,7 +195,7 @@ export class LoginDto {
   })
   @IsString()
   @MinLength(1, { message: 'Password is required' })
-  password: string;
+  password!: string;
 }
 
 export class UserResponseDto {
@@ -203,33 +203,33 @@ export class UserResponseDto {
     description: 'User ID',
     example: '507f1f77bcf86cd799439011',
   })
-  id: string;
+  id!: string;
 
   @ApiProperty({
     description: 'User full name',
     example: 'John Doe',
   })
-  name: string;
+  name!: string;
 
   @ApiProperty({
     description: 'User email address',
     example: 'john.doe@example.com',
   })
-  email: string;
+  email!: string;
 
   @ApiProperty({
     description: 'User role in the system',
     enum: UserRole,
     example: UserRole.PATIENT,
   })
-  role: UserRole;
+  role!: UserRole;
 
   @ApiProperty({
     description: 'User account status',
     example: 'verified',
     enum: ['pending', 'verified', 'rejected'],
   })
-  status: string;
+  status!: string;
 }
 
 export class AuthResponseDto {
@@ -237,13 +237,13 @@ export class AuthResponseDto {
     description: 'JWT access token',
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   })
-  access_token: string;
+  access_token!: string;
 
   @ApiProperty({
     description: 'User information',
     type: UserResponseDto,
   })
-  user: UserResponseDto;
+  user!: UserResponseDto;
 }
 
 export class UpdateProfileDto {
@@ -263,7 +263,7 @@ export class UpdateProfileDto {
   })
   @IsOptional()
   @IsString()
-  @IsPhoneNumber(null, { message: 'Please provide a valid phone number' })
+  @IsPhoneNumber(undefined, { message: 'Please provide a valid phone number' })
   phone?: string;
 
   @ApiPropertyOptional({

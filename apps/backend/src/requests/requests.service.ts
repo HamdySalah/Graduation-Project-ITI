@@ -8,7 +8,7 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { PatientRequest, PatientRequestDocument, RequestStatus } from '../schemas/patient-request.schema';
-import { UserDocument, UserRole, UserStatus } from '../schemas/user.schema';
+import { UserDocument, UserRole } from '../schemas/user.schema';
 import { CreateRequestDto, UpdateRequestStatusDto } from '../dto/request.dto';
 
 @Injectable()
@@ -148,6 +148,63 @@ export class RequestsService {
         email: (request.nurseId as any).email,
       } : null,
     }));
+  }
+
+  // Temporary method for admin access without authentication
+  async getAllRequestsForAdmin(status?: RequestStatus) {
+    let query: any = {};
+
+    // Add status filter if provided
+    if (status) {
+      query.status = status;
+    }
+
+    try {
+      const requests = await this.requestModel
+        .find(query)
+        .populate('patientId', '-password')
+        .populate('nurseId', '-password')
+        .sort({ createdAt: -1 })
+        .limit(20) // Limit to 20 most recent requests for performance
+        .exec();
+
+      this.logger.log(`Retrieved ${requests.length} requests for admin view`);
+
+      return requests.map(request => ({
+        id: request._id,
+        title: request.title,
+        description: request.description,
+        serviceType: request.serviceType,
+        status: request.status,
+        location: request.location,
+        address: request.address,
+        scheduledDate: request.scheduledDate,
+        estimatedDuration: request.estimatedDuration,
+        urgencyLevel: request.urgencyLevel,
+        specialRequirements: request.specialRequirements,
+        budget: request.budget,
+        contactPhone: request.contactPhone,
+        notes: request.notes,
+        createdAt: request.createdAt,
+        acceptedAt: request.acceptedAt,
+        completedAt: request.completedAt,
+        patient: request.patientId ? {
+          id: (request.patientId as any)._id,
+          name: (request.patientId as any).name,
+          phone: (request.patientId as any).phone,
+          email: (request.patientId as any).email,
+        } : null,
+        nurse: request.nurseId ? {
+          id: (request.nurseId as any)._id,
+          name: (request.nurseId as any).name,
+          phone: (request.nurseId as any).phone,
+          email: (request.nurseId as any).email,
+        } : null,
+      }));
+    } catch (error) {
+      this.logger.error(`Failed to retrieve requests for admin:`, error instanceof Error ? error.message : 'Unknown error');
+      throw error;
+    }
   }
 
   async getRequestById(requestId: string, user: UserDocument) {
