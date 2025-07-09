@@ -182,7 +182,7 @@ class ApiTester {
           password: 'wrongpassword',
         });
       } catch (error) {
-        this.log('Invalid login properly rejected', error.response?.data);
+        this.log('Invalid login properly rejected', (error as any).response?.data);
       }
 
       // Test unauthorized access
@@ -190,7 +190,7 @@ class ApiTester {
         this.api.defaults.headers.common['Authorization'] = 'Bearer invalid-token';
         await this.api.get('/api/auth/profile');
       } catch (error) {
-        this.log('Unauthorized access properly rejected', error.response?.data);
+        this.log('Unauthorized access properly rejected', (error as any).response?.data);
       }
 
       // Test invalid request data
@@ -203,7 +203,7 @@ class ApiTester {
           coordinates: [200, 100], // Invalid coordinates
         });
       } catch (error) {
-        this.log('Invalid request data properly rejected', error.response?.data);
+        this.log('Invalid request data properly rejected', (error as any).response?.data);
       }
 
     } catch (error) {

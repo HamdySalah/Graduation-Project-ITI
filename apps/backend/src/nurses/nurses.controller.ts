@@ -6,8 +6,7 @@ import {
   Query,
   UseGuards,
   Request,
-  ValidationPipe,
-  HttpStatus
+  ValidationPipe
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -166,5 +165,50 @@ export class NursesController {
   })
   async toggleAvailability(@Request() req : any) {
     return this.nursesService.toggleAvailability(req.user);
+  }
+
+  @Patch(':id/decline')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Decline (reject) a nurse (Admin only)',
+    description: 'Decline a nurse\'s application and set their status to rejected.'
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Nurse ID to decline',
+    example: '507f1f77bcf86cd799439011'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Nurse declined successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Nurse declined successfully' },
+        nurse: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            name: { type: 'string' },
+            email: { type: 'string' },
+            status: { type: 'string', example: 'rejected' }
+          }
+        }
+      }
+    }
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Invalid or missing JWT token'
+  })
+  @ApiForbiddenResponse({
+    description: 'Only admins can decline nurses'
+  })
+  @ApiNotFoundResponse({
+    description: 'Nurse not found'
+  })
+  async declineNurse(@Param('id') nurseId: string, @Request() req: any) {
+    return this.nursesService.declineNurse(nurseId, req.user);
   }
 }

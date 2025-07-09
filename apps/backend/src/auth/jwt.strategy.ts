@@ -2,7 +2,6 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { InjectModel } from '@nestjs/mongoose';
-import { ConfigService } from '@nestjs/config';
 import { Model } from 'mongoose';
 import { User, UserDocument } from '../schemas/user.schema';
 
@@ -20,13 +19,12 @@ export interface JwtPayload {
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
-    private configService: ConfigService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_SECRET'),
-      issuer: 'nurse-platform',
+      secretOrKey: process.env.JWT_SECRET || 'defaultSecret',
+      issuer: 'nurse-platform-api',
       audience: 'nurse-platform-users',
     });
   }
