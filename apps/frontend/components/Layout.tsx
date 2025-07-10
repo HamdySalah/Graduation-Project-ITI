@@ -50,7 +50,7 @@ export default function Layout({ children, title }: LayoutProps) {
                         </>
                       )}
                       {user.role === 'admin' && (
-                        <Link href="/admin" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Admin Panel</Link>
+                        <Link href="/dashboard" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Admin Dashboard</Link>
                       )}
                       <button
                         onClick={logout}
@@ -102,8 +102,10 @@ export default function Layout({ children, title }: LayoutProps) {
 }
 
 // Status badge component
-export function StatusBadge({ status }: { status: string }) {
+export function StatusBadge({ status }: { status?: string }) {
   const getStatusColor = (status: string) => {
+    if (!status) return 'bg-gray-100 text-gray-800';
+
     switch (status.toLowerCase()) {
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
@@ -124,9 +126,11 @@ export function StatusBadge({ status }: { status: string }) {
     }
   };
 
+  const displayStatus = status || 'unknown';
+
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
-      {status.replace('_', ' ').toUpperCase()}
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(displayStatus)}`}>
+      {displayStatus.replace('_', ' ').toUpperCase()}
     </span>
   );
 }
