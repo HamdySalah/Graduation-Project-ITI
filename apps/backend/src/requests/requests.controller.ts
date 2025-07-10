@@ -21,6 +21,10 @@ export class RequestsController {
 
   @Get('dashboard/stats')
   async getDashboardStats(@Request() req : any) {
+    // Temporary fix: if no user context (auth disabled), return basic stats
+    if (!req.user) {
+      return this.requestsService.getBasicDashboardStats();
+    }
     return this.requestsService.getDashboardStats(req.user);
   }
 

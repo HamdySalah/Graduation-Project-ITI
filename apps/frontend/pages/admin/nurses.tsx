@@ -64,7 +64,7 @@ export default function AdminNurses() {
 
   const handleDeclineNurse = async (nurseId: string) => {
     try {
-      await apiService.declineNurse(nurseId);
+      await apiService.rejectNurse(nurseId);
       await loadNurses();
     } catch (err: any) {
       setError(err.message || 'Failed to decline nurse');
