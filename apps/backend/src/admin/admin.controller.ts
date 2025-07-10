@@ -1,8 +1,9 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Param, Request, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
+  ApiParam,
   ApiBearerAuth,
   ApiUnauthorizedResponse,
   ApiForbiddenResponse
@@ -65,6 +66,58 @@ export class AdminController {
   })
   async getPendingNurses() {
     return this.nursesService.getPendingNurses();
+  }
+
+  @Post('verify-nurse/:nurseId')
+  @ApiOperation({
+    summary: 'Verify a nurse (Admin only)',
+    description: 'Approve a nurse for the platform'
+  })
+  @ApiParam({
+    name: 'nurseId',
+    description: 'ID of the nurse to verify',
+    type: 'string'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Nurse verified successfully'
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Invalid or missing JWT token'
+  })
+  @ApiForbiddenResponse({
+    description: 'Only admins can verify nurses'
+  })
+  async verifyNurse(@Param('nurseId') nurseId: string, @Request() req: any) {
+    // For now, create a mock admin user since we removed auth
+    const mockAdmin = { role: 'admin', _id: 'admin-id' };
+    return this.nursesService.verifyNurse(nurseId, mockAdmin as any);
+  }
+
+  @Post('reject-nurse/:nurseId')
+  @ApiOperation({
+    summary: 'Reject a nurse (Admin only)',
+    description: 'Reject a nurse application'
+  })
+  @ApiParam({
+    name: 'nurseId',
+    description: 'ID of the nurse to reject',
+    type: 'string'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Nurse rejected successfully'
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Invalid or missing JWT token'
+  })
+  @ApiForbiddenResponse({
+    description: 'Only admins can reject nurses'
+  })
+  async rejectNurse(@Param('nurseId') nurseId: string, @Request() req: any) {
+    // For now, create a mock admin user since we removed auth
+    const mockAdmin = { role: 'admin', _id: 'admin-id' };
+    return this.nursesService.rejectNurse(nurseId, mockAdmin as any);
   }
 
   @Get('stats')

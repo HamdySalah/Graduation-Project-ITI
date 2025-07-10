@@ -97,6 +97,10 @@ export class RequestsController {
     description: 'Invalid or missing JWT token'
   })
   async getDashboardStats(@Request() req : any) {
+    // Temporary fix: if no user context (auth disabled), return basic stats
+    if (!req.user) {
+      return this.requestsService.getBasicDashboardStats();
+    }
     return this.requestsService.getDashboardStats(req.user);
   }
 
