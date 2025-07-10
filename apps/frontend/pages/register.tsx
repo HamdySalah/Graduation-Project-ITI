@@ -21,7 +21,9 @@ export default function Register() {
     const egyptianPhoneRegex = /^01[0125]\d{8}$/;
     
     // Debug log for phone validation
-    console.log('Validating phone:', phone, egyptianPhoneRegex.test(phone));
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Validating phone:', phone, egyptianPhoneRegex.test(phone));
+    }
     
     return egyptianPhoneRegex.test(phone);
   };
