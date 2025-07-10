@@ -41,7 +41,7 @@ export class User {
   @Prop()
   emailVerificationToken?: string;
 
-  @Prop()
+  @Prop({ type: Date })
   emailVerificationExpires?: Date;
 
   @Prop({
