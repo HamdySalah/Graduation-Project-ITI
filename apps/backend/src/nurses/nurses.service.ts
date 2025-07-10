@@ -50,29 +50,27 @@ export class NursesService {
       .exec();
 
     // Combine user and profile data
-    const result = nurseProfiles
-      .filter(profile => profile.userId) // Ensure userId is defined
-      .map(profile => ({
-        id: (profile.userId as any)._id,
-        name: (profile.userId as any).name,
-        email: (profile.userId as any).email,
-        phone: (profile.userId as any).phone,
-        location: (profile.userId as any).location,
-        address: (profile.userId as any).address,
-        profileImage: (profile.userId as any).profileImage,
-        licenseNumber: profile.licenseNumber,
-        yearsOfExperience: profile.yearsOfExperience,
-        specializations: profile.specializations,
-        education: profile.education,
-        certifications: profile.certifications,
-        rating: profile.rating,
-        totalReviews: profile.totalReviews,
-        completedJobs: profile.completedJobs,
-        hourlyRate: profile.hourlyRate,
-        bio: profile.bio,
-        languages: profile.languages,
-        isAvailable: profile.isAvailable,
-      }));
+    const result = nurseProfiles.map(profile => ({
+      id: profile.userId._id,
+      name: (profile.userId as any).name,
+      email: (profile.userId as any).email,
+      phone: (profile.userId as any).phone,
+      location: (profile.userId as any).location,
+      address: (profile.userId as any).address,
+      profileImage: (profile.userId as any).profileImage,
+      licenseNumber: profile.licenseNumber,
+      yearsOfExperience: profile.yearsOfExperience,
+      specializations: profile.specializations,
+      education: profile.education,
+      certifications: profile.certifications,
+      rating: profile.rating,
+      totalReviews: profile.totalReviews,
+      completedJobs: profile.completedJobs,
+      hourlyRate: profile.hourlyRate,
+      bio: profile.bio,
+      languages: profile.languages,
+      isAvailable: profile.isAvailable,
+    }));
 
     return result;
   }
@@ -101,7 +99,7 @@ export class NursesService {
     const nurseProfile = await this.nurseProfileModel.findOne({ userId: nurseId }).exec();
     if (nurseProfile) {
       nurseProfile.verifiedAt = new Date();
-      nurseProfile.verifiedBy = adminUser._id as any;
+      nurseProfile.verifiedBy = adminUser._id;
       await nurseProfile.save();
     }
 
@@ -128,26 +126,24 @@ export class NursesService {
       .populate('userId', '-password')
       .exec();
 
-    const result = nurseProfiles
-      .filter(profile => profile.userId) // Ensure userId is defined
-      .map(profile => ({
-        id: (profile.userId as any)._id,
-        name: (profile.userId as any).name,
-        email: (profile.userId as any).email,
-        phone: (profile.userId as any).phone,
-        location: (profile.userId as any).location,
-        address: (profile.userId as any).address,
-        createdAt: (profile.userId as any).createdAt,
-        licenseNumber: profile.licenseNumber,
-        yearsOfExperience: profile.yearsOfExperience,
-        specializations: profile.specializations,
-        education: profile.education,
-        certifications: profile.certifications,
-        documents: profile.documents,
-        hourlyRate: profile.hourlyRate,
-        bio: profile.bio,
-        languages: profile.languages,
-      }));
+    const result = nurseProfiles.map(profile => ({
+      id: profile.userId._id,
+      name: (profile.userId as any).name,
+      email: (profile.userId as any).email,
+      phone: (profile.userId as any).phone,
+      location: (profile.userId as any).location,
+      address: (profile.userId as any).address,
+      createdAt: (profile.userId as any).createdAt,
+      licenseNumber: profile.licenseNumber,
+      yearsOfExperience: profile.yearsOfExperience,
+      specializations: profile.specializations,
+      education: profile.education,
+      certifications: profile.certifications,
+      documents: profile.documents,
+      hourlyRate: profile.hourlyRate,
+      bio: profile.bio,
+      languages: profile.languages,
+    }));
 
     return result;
   }
@@ -168,47 +164,6 @@ export class NursesService {
     return {
       message: `Availability ${nurseProfile.isAvailable ? 'enabled' : 'disabled'} successfully`,
       isAvailable: nurseProfile.isAvailable,
-    };
-  }
-
-  async declineNurse(nurseId: string, adminUser: UserDocument) {
-    // Check if admin has permission
-    if (adminUser.role !== UserRole.ADMIN) {
-      throw new ForbiddenException('Only admins can decline nurses');
-    }
-
-    // Find the nurse
-    const nurse = await this.userModel.findById(nurseId).exec();
-    if (!nurse) {
-      throw new NotFoundException('Nurse not found');
-    }
-
-    if (nurse.role !== UserRole.NURSE) {
-      throw new ForbiddenException('User is not a nurse');
-    }
-
-    // Update nurse status to rejected
-    nurse.status = UserStatus.REJECTED;
-    await nurse.save();
-
-    // Optionally, update nurse profile (e.g., add a rejectedAt timestamp)
-    const nurseProfile = await this.nurseProfileModel.findOne({ userId: nurseId }).exec();
-    if (nurseProfile) {
-      nurseProfile.verifiedAt = undefined;
-      nurseProfile.verifiedBy = undefined;
-      // Optionally, add a rejectedAt field if you want to track rejection time
-      // nurseProfile.rejectedAt = new Date();
-      await nurseProfile.save();
-    }
-
-    return {
-      message: 'Nurse declined successfully',
-      nurse: {
-        id: nurse._id,
-        name: nurse.name,
-        email: nurse.email,
-        status: nurse.status,
-      },
     };
   }
 }
