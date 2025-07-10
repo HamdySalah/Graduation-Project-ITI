@@ -3,6 +3,7 @@ import { useAuth } from '../../lib/auth';
 import Layout, { Card, LoadingSpinner, StatusBadge } from '../../components/Layout';
 import { apiService } from '../../lib/api';
 import Link from 'next/link';
+import NurseProtectedRoute from '../../components/NurseProtectedRoute';
 
 interface Request {
   id: string;
@@ -28,7 +29,7 @@ interface Request {
   };
 }
 
-export default function RequestsList() {
+function RequestsList() {
   const { user } = useAuth();
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
@@ -300,5 +301,13 @@ function RequestCard({
         </div>
       </div>
     </Card>
+  );
+}
+
+export default function ProtectedRequestsList() {
+  return (
+    <NurseProtectedRoute requireVerified={true}>
+      <RequestsList />
+    </NurseProtectedRoute>
   );
 }
