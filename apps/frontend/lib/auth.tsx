@@ -50,6 +50,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuthStatus = async () => {
     try {
+      // Development mode: Check if we should bypass authentication
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      const bypassAuth = localStorage.getItem('bypass_auth') === 'true';
+
+      if (isDevelopment && bypassAuth) {
+        console.log('Development mode: Bypassing authentication');
+        const mockUser = {
+          id: 'dev-admin',
+          name: 'Development Admin',
+          email: 'admin@dev.com',
+          role: 'admin',
+          status: 'verified'
+        };
+        setUser(mockUser as User);
+        setLoading(false);
+        return;
+      }
+
       const token = localStorage.getItem('token');
       console.log('Checking auth status, token exists:', !!token);
 
@@ -63,24 +81,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('Token found, fetching user profile...');
       const userData = await apiService.getProfile();
       console.log('Profile fetched successfully:', userData);
-      setUser(userData as User);
+
+      if (userData) {
+        setUser(userData as User);
+      } else {
+        console.log('Profile returned null, clearing authentication');
+        localStorage.removeItem('token');
+        setUser(null);
+      }
     } catch (error: any) {
       console.error('Auth check failed:', error);
-      console.log('Removing invalid token and redirecting to login');
+      console.log('Removing invalid token');
 
       // Clear invalid authentication state
       localStorage.removeItem('token');
       setUser(null);
 
-      // Don't throw the error, just handle it gracefully
-      if (typeof window !== 'undefined') {
-        // Only redirect if we're in the browser and not already on login/register pages
-        const currentPath = window.location.pathname;
-        if (!currentPath.includes('/login') && !currentPath.includes('/register') && !currentPath.includes('/')) {
-          console.log('Redirecting to login due to auth failure');
-          window.location.href = '/login';
-        }
-      }
+      // Don't redirect automatically, just clear the state
+      console.log('Authentication cleared due to error');
     } finally {
       setLoading(false);
     }

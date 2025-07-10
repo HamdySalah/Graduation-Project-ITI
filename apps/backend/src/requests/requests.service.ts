@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-  BadRequestException,
-  Logger
-} from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { PatientRequest, PatientRequestDocument, RequestStatus } from '../schemas/patient-request.schema';
@@ -13,79 +7,55 @@ import { CreateRequestDto, UpdateRequestStatusDto } from '../dto/request.dto';
 
 @Injectable()
 export class RequestsService {
-  private readonly logger = new Logger(RequestsService.name);
-
   constructor(
     @InjectModel(PatientRequest.name) private requestModel: Model<PatientRequestDocument>,
   ) {}
 
   async createRequest(createRequestDto: CreateRequestDto, patientUser: UserDocument) {
-    this.logger.log(`Request creation attempt by user: ${patientUser._id}`);
-
-    try {
-      // Ensure only patients can create requests
-      if (patientUser.role !== UserRole.PATIENT) {
-        throw new ForbiddenException('Only patients can create service requests');
-      }
-
-      // Validate scheduled date is in the future
-      const scheduledDate = new Date(createRequestDto.scheduledDate);
-      if (scheduledDate <= new Date()) {
-        throw new BadRequestException('Scheduled date must be in the future');
-      }
-
-      // Validate coordinates
-      const [longitude, latitude] = createRequestDto.coordinates;
-      if (longitude < -180 || longitude > 180 || latitude < -90 || latitude > 90) {
-        throw new BadRequestException('Invalid coordinates provided');
-      }
-
-      const { coordinates, ...requestData } = createRequestDto;
-
-      const request = new this.requestModel({
-        ...requestData,
-        patientId: patientUser._id,
-        location: {
-          type: 'Point',
-          coordinates: coordinates, // [longitude, latitude]
-        },
-        scheduledDate,
-        status: RequestStatus.PENDING,
-      });
-
-      const savedRequest = await request.save();
-      this.logger.log(`Request created successfully: ${savedRequest._id}`);
-
-      // Populate patient information
-      await savedRequest.populate('patientId', '-password');
-
-      return {
-        id: savedRequest._id,
-        title: savedRequest.title,
-        description: savedRequest.description,
-        serviceType: savedRequest.serviceType,
-        status: savedRequest.status,
-        location: savedRequest.location,
-        address: savedRequest.address,
-        scheduledDate: savedRequest.scheduledDate,
-        estimatedDuration: savedRequest.estimatedDuration,
-        urgencyLevel: savedRequest.urgencyLevel,
-        specialRequirements: savedRequest.specialRequirements,
-        budget: savedRequest.budget,
-        contactPhone: savedRequest.contactPhone,
-        notes: savedRequest.notes,
-        createdAt: savedRequest.createdAt || new Date(),
-        updatedAt: savedRequest.updatedAt || new Date(),
-        patient: {
-          id: (savedRequest.patientId as any)._id,
-          name: (savedRequest.patientId as any).name,
-          phone: (savedRequest.patientId as any).phone,
-        },
-      };
-    } catch (error) {
-      this.logger.error(`Request creation failed for user ${patientUser._id}:`, error instanceof Error ? error.message : 'Unknown error');
-      throw error;
+    // Ensure only patients can create requests
+    if (patientUser.role !== UserRole.PATIENT) {
+      throw new ForbiddenException('Only patients can create service requests');
     }
+
+    const { coordinates, scheduledDate, ...requestData } = createRequestDto;
+
+    const request = new this.requestModel({
+      ...requestData,
+      patientId: patientUser._id as any,
+      location: {
+        type: 'Point',
+        coordinates: coordinates, // [longitude, latitude]
+      },
+      scheduledDate: new Date(scheduledDate || Date.now()),
+    });
+
+    const savedRequest = await request.save();
+
+    // Populate patient information
+    await savedRequest.populate('patientId', '-password');
+
+    return {
+      id: savedRequest._id,
+      title: savedRequest.title,
+      description: savedRequest.description,
+      serviceType: savedRequest.serviceType,
+      status: savedRequest.status,
+      location: savedRequest.location,
+      address: savedRequest.address,
+      scheduledDate: savedRequest.scheduledDate,
+      estimatedDuration: savedRequest.estimatedDuration,
+      urgencyLevel: savedRequest.urgencyLevel,
+      specialRequirements: savedRequest.specialRequirements,
+      budget: savedRequest.budget,
+      contactPhone: savedRequest.contactPhone,
+      notes: savedRequest.notes,
+      createdAt: savedRequest.createdAt || new Date(),
+      patient: {
+        id: (savedRequest.patientId as any)._id,
+        name: (savedRequest.patientId as any).name,
+        phone: (savedRequest.patientId as any).phone,
+      },
+    };
   }
 
   async getRequests(user: UserDocument, status?: RequestStatus) {
@@ -148,63 +118,6 @@ export class RequestsService {
         email: (request.nurseId as any).email,
       } : null,
     }));
-  }
-
-  // Temporary method for admin access without authentication
-  async getAllRequestsForAdmin(status?: RequestStatus) {
-    let query: any = {};
-
-    // Add status filter if provided
-    if (status) {
-      query.status = status;
-    }
-
-    try {
-      const requests = await this.requestModel
-        .find(query)
-        .populate('patientId', '-password')
-        .populate('nurseId', '-password')
-        .sort({ createdAt: -1 })
-        .limit(20) // Limit to 20 most recent requests for performance
-        .exec();
-
-      this.logger.log(`Retrieved ${requests.length} requests for admin view`);
-
-      return requests.map(request => ({
-        id: request._id,
-        title: request.title,
-        description: request.description,
-        serviceType: request.serviceType,
-        status: request.status,
-        location: request.location,
-        address: request.address,
-        scheduledDate: request.scheduledDate,
-        estimatedDuration: request.estimatedDuration,
-        urgencyLevel: request.urgencyLevel,
-        specialRequirements: request.specialRequirements,
-        budget: request.budget,
-        contactPhone: request.contactPhone,
-        notes: request.notes,
-        createdAt: request.createdAt,
-        acceptedAt: request.acceptedAt,
-        completedAt: request.completedAt,
-        patient: request.patientId ? {
-          id: (request.patientId as any)._id,
-          name: (request.patientId as any).name,
-          phone: (request.patientId as any).phone,
-          email: (request.patientId as any).email,
-        } : null,
-        nurse: request.nurseId ? {
-          id: (request.nurseId as any)._id,
-          name: (request.nurseId as any).name,
-          phone: (request.nurseId as any).phone,
-          email: (request.nurseId as any).email,
-        } : null,
-      }));
-    } catch (error) {
-      this.logger.error(`Failed to retrieve requests for admin:`, error instanceof Error ? error.message : 'Unknown error');
-      throw error;
-    }
   }
 
   async getRequestById(requestId: string, user: UserDocument) {
@@ -401,5 +314,30 @@ export class RequestsService {
     }
 
     return stats;
+  }
+
+  // Temporary method for basic dashboard stats without authentication
+  async getBasicDashboardStats() {
+    try {
+      const totalRequests = await this.requestModel.countDocuments().exec();
+      const pendingRequests = await this.requestModel.countDocuments({ status: RequestStatus.PENDING }).exec();
+      const acceptedRequests = await this.requestModel.countDocuments({ status: RequestStatus.ACCEPTED }).exec();
+      const completedRequests = await this.requestModel.countDocuments({ status: RequestStatus.COMPLETED }).exec();
+      const cancelledRequests = await this.requestModel.countDocuments({ status: RequestStatus.CANCELLED }).exec();
+
+      this.logger.log(`Retrieved basic dashboard stats: ${totalRequests} total requests`);
+
+      return {
+        totalRequests,
+        pendingRequests,
+        acceptedRequests,
+        completedRequests,
+        cancelledRequests,
+        successRate: totalRequests > 0 ? Math.round((completedRequests / totalRequests) * 100) : 0,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to retrieve basic dashboard stats:`, error instanceof Error ? error.message : 'Unknown error');
+      throw error;
+    }
   }
 }

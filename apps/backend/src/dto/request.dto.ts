@@ -13,6 +13,7 @@ import {
   Max,
   IsPhoneNumber
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ServiceType, RequestStatus } from '../schemas/patient-request.schema';
 import { SpecializationType } from '../schemas/nurse-profile.schema';
@@ -168,6 +169,7 @@ export class GetNearbyNursesDto {
     minimum: -90,
     maximum: 90,
   })
+  @Transform(({ value }) => parseFloat(value))
   @IsNumber({}, { message: 'Latitude must be a valid number' })
   @Min(-90, { message: 'Latitude must be between -90 and 90' })
   @Max(90, { message: 'Latitude must be between -90 and 90' })
@@ -179,6 +181,7 @@ export class GetNearbyNursesDto {
     minimum: -180,
     maximum: 180,
   })
+  @Transform(({ value }) => parseFloat(value))
   @IsNumber({}, { message: 'Longitude must be a valid number' })
   @Min(-180, { message: 'Longitude must be between -180 and 180' })
   @Max(180, { message: 'Longitude must be between -180 and 180' })
@@ -192,6 +195,7 @@ export class GetNearbyNursesDto {
     maximum: 100,
   })
   @IsOptional()
+  @Transform(({ value }) => value ? parseFloat(value) : undefined)
   @IsNumber({}, { message: 'Radius must be a valid number' })
   @Min(1, { message: 'Radius must be at least 1 km' })
   @Max(100, { message: 'Radius cannot exceed 100 km' })

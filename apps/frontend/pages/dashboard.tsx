@@ -18,6 +18,7 @@ interface DashboardStats {
   totalNurses?: number;
   verifiedNurses?: number;
   pendingNurses?: number;
+  successRate?: number;
   monthlyGrowth?: {
     users: number;
     requests: number;
@@ -76,17 +77,21 @@ export default function Dashboard() {
           console.log('Loading dashboard stats...');
           const dashboardStatsResponse = await apiService.getDashboardStats();
           console.log('Dashboard stats response:', dashboardStatsResponse);
+
+          // The API service now returns the data directly
           setStats(dashboardStatsResponse as DashboardStats);
         } catch (dashboardError: any) {
           console.error('Failed to load dashboard stats:', dashboardError);
-          // Fallback to basic stats
+          // Fallback to basic stats - don't throw error, just set empty data
           setStats({
             totalRequests: 0,
             pendingRequests: 0,
             completedRequests: 0,
-            cancelledRequests: 0
+            cancelledRequests: 0,
+            acceptedRequests: 0,
+            inProgressRequests: 0
           });
-          throw new Error(`Dashboard stats error: ${dashboardError.message}`);
+          console.warn('Using fallback dashboard stats due to error:', dashboardError.message);
         }
       }
 
@@ -192,10 +197,22 @@ export default function Dashboard() {
                 color="yellow"
               />
               <StatCard
+                title="Accepted Requests"
+                value={stats.acceptedRequests || 0}
+                icon="👍"
+                color="purple"
+              />
+              <StatCard
                 title="Completed Requests"
                 value={stats.completedRequests || 0}
                 icon="✅"
                 color="green"
+              />
+              <StatCard
+                title="Success Rate"
+                value={stats.successRate ? `${stats.successRate}%` : '0%'}
+                icon="📊"
+                color="blue"
               />
               <StatCard
                 title="Cancelled Requests"
