@@ -13,17 +13,22 @@ import { EmailService } from './email.service';
         transport: {
           host: configService.get<string>('MAIL_HOST'),
           port: 587,
-          secure: false,
+          secure: false, // true for 465, false for other ports
+          requireTLS: true,
           auth: {
             user: configService.get<string>('MAIL_USER'),
             pass: configService.get<string>('MAIL_PASSWORD'),
+          },
+          tls: {
+            // do not fail on invalid certs
+            rejectUnauthorized: false,
           },
         },
         defaults: {
           from: `"Nurse Platform" <${configService.get<string>('MAIL_USER')}>`,
         },
         template: {
-          dir: join(__dirname, '..', 'templates'),
+          dir: join(__dirname, '../../../templates'),
           adapter: new HandlebarsAdapter(),
           options: {
             strict: true,

@@ -79,15 +79,16 @@ export class AuthService {
       this.logger.log(`User created successfully: ${savedUser._id}`);
 
       // Send verification email
-      try {
-        await this.emailService.sendVerificationEmail(
-          savedUser.email!,
-          savedUser.name!,
-          verificationToken
-        );
+      const emailSent = await this.emailService.sendVerificationEmail(
+        savedUser.email!,
+        savedUser.name!,
+        verificationToken
+      );
+      
+      if (emailSent) {
         this.logger.log(`Verification email sent to ${savedUser.email}`);
-      } catch (error) {
-        this.logger.warn(`Failed to send verification email to ${savedUser.email}:`, error);
+      } else {
+        this.logger.warn(`Failed to send verification email to ${savedUser.email}`);
         // Don't fail registration if email fails
       }
 
@@ -390,13 +391,18 @@ export class AuthService {
       await user.save();
 
       // Send verification email
-      await this.emailService.sendVerificationEmail(
+      const emailSent = await this.emailService.sendVerificationEmail(
         user.email!,
         user.name!,
         verificationToken
       );
-
-      this.logger.log(`Verification email resent to ${email}`);
+      
+      if (emailSent) {
+        this.logger.log(`Verification email resent to ${email}`);
+      } else {
+        this.logger.warn(`Failed to resend verification email to ${email}`);
+        throw new Error('Failed to send verification email. Please try again later.');
+      }
 
       return { message: 'Verification email sent successfully' };
     } catch (error) {
