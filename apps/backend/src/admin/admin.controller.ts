@@ -205,6 +205,30 @@ export class AdminController {
     };
   }
 
+  @Get('users')
+  @ApiOperation({
+    summary: 'Get all users (Admin only)',
+    description: 'Retrieve all users for admin dashboard'
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Users retrieved successfully'
+  })
+  async getAllUsers() {
+    try {
+      const users = await this.userModel.find({}).select('-password').exec();
+      console.log(`Found ${users.length} users in database`);
+      return {
+        success: true,
+        data: users,
+        total: users.length
+      };
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      throw error;
+    }
+  }
+
   @Get('analytics')
   @ApiOperation({
     summary: 'Get comprehensive analytics data (Admin only)',

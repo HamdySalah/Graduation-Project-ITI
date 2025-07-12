@@ -1,5 +1,6 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState, useRef, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
+import { useDropdownNavigation } from '../lib/navigation';
 import Link from 'next/link';
 
 interface LayoutProps {
@@ -9,6 +10,31 @@ interface LayoutProps {
 
 export default function Layout({ children, title }: LayoutProps) {
   const { user, logout } = useAuth();
+  const { navigateAndClose } = useDropdownNavigation();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const closeDropdown = () => {
+    setIsDropdownOpen(false);
+  };
+
+  const handleNavigation = (url: string) => {
+    navigateAndClose(url, closeDropdown);
+  };
 
 
 
@@ -25,45 +51,93 @@ export default function Layout({ children, title }: LayoutProps) {
             </div>
             <div className="flex items-center space-x-4">
               {user ? (
-                <div className="relative group">
-                  <button className="flex items-center space-x-2 focus:outline-none">
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="flex items-center space-x-2 focus:outline-none hover:bg-gray-100 rounded-lg px-3 py-2 transition-colors"
+                  >
                     <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
                       <span className="text-white text-sm font-medium">{user.name.charAt(0).toUpperCase()}</span>
                     </div>
                     <span className="text-gray-700 font-medium">{user.name}</span>
-                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                    <svg
+                      className={`w-4 h-4 text-gray-500 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
                   </button>
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity z-50">
-                    <div className="py-1">
-                      <Link href="/profile" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Profile</Link>
-                      <Link href="/dashboard" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Dashboard</Link>
-                      {user.role === 'patient' && (
-                        <>
-                          <Link href="/requests" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">My Requests</Link>
-                          <Link href="/requests/create" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Create Request</Link>
-                          <Link href="/nurses" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Find Nurses</Link>
-                        </>
-                      )}
-                      {user.role === 'nurse' && (
-                        <>
-                          <Link href="/requests" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">My Requests</Link>
-                        </>
-                      )}
-                      {user.role === 'admin' && (
-                        <Link href="/dashboard" className="block px-4 py-2 text-gray-700 hover:bg-gray-100">Admin Dashboard</Link>
-                      )}
-                      <button
-                        onClick={logout}
-                        className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100 flex items-center"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 mr-1">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M18 12H9m0 0l3-3m-3 3l3 3" />
-                        </svg>
-                        Logout
-                      </button>
+
+                  {isDropdownOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                      <div className="py-1">
+                        <button
+                          onClick={() => handleNavigation('/profile')}
+                          className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                        >
+                          Profile
+                        </button>
+
+                        <button
+                          onClick={() => handleNavigation('/dashboard')}
+                          className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                        >
+                          Dashboard
+                        </button>
+
+                        {user.role === 'patient' && (
+                          <>
+                            <button
+                              onClick={() => handleNavigation('/requests')}
+                              className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                            >
+                              My Requests
+                            </button>
+
+                            <button
+                              onClick={() => handleNavigation('/requests/create')}
+                              className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                            >
+                              Create Request
+                            </button>
+
+                            <button
+                              onClick={() => handleNavigation('/nurses')}
+                              className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                            >
+                              Find Nurses
+                            </button>
+                          </>
+                        )}
+
+                        {user.role === 'nurse' && (
+                          <button
+                            onClick={() => handleNavigation('/requests')}
+                            className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                          >
+                            My Requests
+                          </button>
+                        )}
+
+                        <div className="border-t border-gray-100 my-1"></div>
+
+                        <button
+                          onClick={() => {
+                            closeDropdown();
+                            logout();
+                          }}
+                          className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 transition-colors flex items-center"
+                        >
+                          <svg className="w-4 h-4 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                          </svg>
+                          Logout
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               ) : (
                 <div className="flex space-x-4">
