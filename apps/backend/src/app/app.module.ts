@@ -10,6 +10,7 @@ import { RequestsModule } from '../requests/requests.module';
 import { AdminModule } from '../admin/admin.module';
 import { DashboardModule } from '../dashboard/dashboard.module';
 import { UserManagementModule } from '../user-management/user-management.module';
+import { ReviewsModule } from '../reviews/reviews.module';
 import { configValidationSchema } from '../config/config.validation';
 import { GlobalExceptionFilter } from '../common/filters/global-exception.filter';
 import { ResponseInterceptor } from '../common/interceptors/response.interceptor';
@@ -39,6 +40,7 @@ import { ResponseInterceptor } from '../common/interceptors/response.interceptor
     AdminModule,
     DashboardModule,
     UserManagementModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [
