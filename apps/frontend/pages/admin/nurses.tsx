@@ -5,20 +5,20 @@ import { apiService } from '../../lib/api';
 
 interface Nurse {
   id: string;
-  name: string;
-  email: string;
-  phone: string;
-  status: string;
-  location: {
+  name?: string;
+  email?: string;
+  phone?: string;
+  status?: string;
+  location?: {
     type: string;
     coordinates: [number, number];
   };
-  address: string;
-  createdAt: string;
-  licenseNumber: string;
-  yearsOfExperience: number;
-  specializations: string[];
-  education: string;
+  address?: string;
+  createdAt?: string;
+  licenseNumber?: string;
+  yearsOfExperience?: number;
+  specializations?: string[];
+  education?: string;
   rating?: number;
   totalReviews?: number;
   completedJobs?: number;
@@ -164,29 +164,29 @@ function NurseCard({
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
           <div className="flex items-center space-x-3 mb-2">
-            <h3 className="text-lg font-semibold text-gray-900">{nurse.name}</h3>
+            <h3 className="text-lg font-semibold text-gray-900">{nurse.name || 'Unknown Name'}</h3>
             <StatusBadge status={nurse.status} />
             {nurse.isAvailable !== undefined && (
               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                nurse.isAvailable 
-                  ? 'bg-green-100 text-green-800' 
+                nurse.isAvailable
+                  ? 'bg-green-100 text-green-800'
                   : 'bg-red-100 text-red-800'
               }`}>
                 {nurse.isAvailable ? 'Available' : 'Busy'}
               </span>
             )}
           </div>
-          <p className="text-gray-600">{nurse.email}</p>
-          <p className="text-gray-600">{nurse.phone}</p>
-          <p className="text-sm text-gray-500">{nurse.address}</p>
+          <p className="text-gray-600">{nurse.email || 'No email provided'}</p>
+          <p className="text-gray-600">{nurse.phone || 'No phone provided'}</p>
+          <p className="text-sm text-gray-500">{nurse.address || 'No address provided'}</p>
         </div>
         <div className="text-right">
           <p className="text-sm text-gray-500">
-            Registered: {new Date(nurse.createdAt).toLocaleDateString()}
+            Registered: {nurse.createdAt ? new Date(nurse.createdAt).toLocaleDateString() : 'Unknown'}
           </p>
           {nurse.rating && (
             <p className="text-sm">
-              ⭐ {nurse.rating.toFixed(1)} ({nurse.totalReviews} reviews)
+              ⭐ {nurse.rating.toFixed(1)} ({nurse.totalReviews || 0} reviews)
             </p>
           )}
           {nurse.hourlyRate && (
@@ -200,29 +200,33 @@ function NurseCard({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
         <div>
           <span className="font-medium text-gray-500">License:</span>
-          <p className="text-gray-900">{nurse.licenseNumber}</p>
+          <p className="text-gray-900">{nurse.licenseNumber || 'Not provided'}</p>
         </div>
         <div>
           <span className="font-medium text-gray-500">Experience:</span>
-          <p className="text-gray-900">{nurse.yearsOfExperience} years</p>
+          <p className="text-gray-900">{nurse.yearsOfExperience || 0} years</p>
         </div>
         <div>
           <span className="font-medium text-gray-500">Education:</span>
-          <p className="text-gray-900">{nurse.education}</p>
+          <p className="text-gray-900">{nurse.education || 'Not provided'}</p>
         </div>
       </div>
 
       <div className="mb-4">
         <span className="font-medium text-gray-500">Specializations:</span>
         <div className="flex flex-wrap gap-1 mt-1">
-          {nurse.specializations.map(spec => (
-            <span
-              key={spec}
-              className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
-            >
-              {spec.replace('_', ' ')}
-            </span>
-          ))}
+          {nurse.specializations && nurse.specializations.length > 0 ? (
+            nurse.specializations.map(spec => (
+              <span
+                key={spec}
+                className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+              >
+                {spec ? spec.replace('_', ' ') : 'Unknown'}
+              </span>
+            ))
+          ) : (
+            <span className="text-gray-500 text-sm">No specializations listed</span>
+          )}
         </div>
       </div>
 
@@ -232,7 +236,10 @@ function NurseCard({
             <div>
               <span className="font-medium text-gray-500">Location Coordinates:</span>
               <p className="text-gray-900">
-                {nurse.location.coordinates[1]}, {nurse.location.coordinates[0]}
+                {nurse.location && nurse.location.coordinates && nurse.location.coordinates.length >= 2
+                  ? `${nurse.location.coordinates[1]}, ${nurse.location.coordinates[0]}`
+                  : 'Not available'
+                }
               </p>
             </div>
             {nurse.completedJobs !== undefined && (
