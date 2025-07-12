@@ -193,14 +193,7 @@ class ApiService {
     }
   }
 
-  async updateProfile(profileData: any) {
-    const response = await fetch(`${API_BASE_URL}/api/auth/profile`, {
-      method: 'PUT',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify(profileData),
-    });
-    return this.handleResponse(response);
-  }
+  // Removed duplicate updateProfile method
 
   // Nurses endpoints
   async getNearbyNurses(params: {
@@ -230,13 +223,7 @@ class ApiService {
     return this.handleResponse(response);
   }
 
-  async verifyNurse(nurseId: string) {
-    const response = await fetch(`${API_BASE_URL}/api/nurses/${nurseId}/verify`, {
-      method: 'PATCH',
-      headers: this.getAuthHeaders(),
-    });
-    return this.handleResponse(response);
-  }
+  // Removed duplicate verifyNurse method for nurses
 
   async declineNurse(nurseId: string) {
     const response = await fetch(`${API_BASE_URL}/api/nurses/${nurseId}/decline`, {
