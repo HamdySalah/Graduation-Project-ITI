@@ -1,3 +1,4 @@
+import { useAuth } from '../lib/auth';
 import Navbar from '../components/Navbar';
 import HeroSection from '../components/HeroSection';
 import TestimonialSection from '../components/TestimonialSection';
@@ -9,6 +10,15 @@ import PlatformFeatures from '../components/PlatformFeatures';
 import VerificationProcess from '../components/VerificationProcess';
 
 export default function Home() {
+  const { loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
   return (
     <div className="scroll-smooth">
       <Navbar />

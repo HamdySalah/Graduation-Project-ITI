@@ -1,11 +1,4 @@
-import {
-  Injectable,
-  ConflictException,
-  UnauthorizedException,
-  BadRequestException,
-  Logger,
-  NotFoundException
-} from '@nestjs/common';
+import { Injectable, ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
@@ -16,10 +9,9 @@ import { NurseProfile, NurseProfileDocument } from '../schemas/nurse-profile.sch
 import { RegisterDto, LoginDto, AuthResponseDto, UpdateProfileDto } from '../dto/auth.dto';
 import { EmailService } from '../email/email.service';
 
+
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);
-
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(NurseProfile.name) private nurseProfileModel: Model<NurseProfileDocument>,
@@ -30,24 +22,33 @@ export class AuthService {
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
     const { email, password, role, coordinates, ...userData } = registerDto;
 
-    this.logger.log(`Registration attempt for email: ${email}, role: ${role}`);
+    // Check if user already exists
+    const existingUser = await this.userModel.findOne({ email }).exec();
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists');
+    }
 
-    try {
-      // Check if user already exists
-      const existingUser = await this.userModel.findOne({ email }).exec();
-      if (existingUser) {
-        this.logger.warn(`Registration failed: User with email ${email} already exists`);
-        throw new ConflictException('User with this email already exists');
-      }
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 12);
 
-      // Validate nurse-specific requirements
-      if (role === UserRole.NURSE) {
-        if (!registerDto.licenseNumber || registerDto.yearsOfExperience === undefined) {
-          throw new BadRequestException('License number and years of experience are required for nurses');
-        }
-        if (registerDto.yearsOfExperience < 0 || registerDto.yearsOfExperience > 50) {
-          throw new BadRequestException('Years of experience must be between 0 and 50');
-        }
+    // Create user
+    const user = new this.userModel({
+      ...userData,
+      email,
+      password: hashedPassword,
+      role,
+      location: {
+        type: 'Point',
+        coordinates: coordinates, // [longitude, latitude]
+      },
+    });
+
+    const savedUser = await user.save();
+
+    // If user is a nurse, create nurse profile
+    if (role === UserRole.NURSE) {
+      if (!registerDto.licenseNumber || !registerDto.yearsOfExperience) {
+        throw new BadRequestException('License number and years of experience are required for nurses');
       }
 
       // Hash password
@@ -108,92 +109,57 @@ export class AuthService {
           isAvailable: false, // New nurses start as unavailable until verified
         });
 
-        await nurseProfile.save();
-        this.logger.log(`Nurse profile created for user: ${savedUser._id}`);
-      }
+    // Generate JWT token
+    const payload = { email: savedUser.email, sub: savedUser._id, role: savedUser.role };
+    const access_token = this.jwtService.sign(payload);
 
-      // Generate JWT token
-      const payload = {
+    return {
+      access_token,
+      user: {
+        id: savedUser._id.toString(),
+        name: savedUser.name,
         email: savedUser.email,
-        sub: savedUser._id,
-        role: savedUser.role
-      };
-      const access_token = this.jwtService.sign(payload);
-
-      this.logger.log(`Registration successful for user: ${savedUser._id}`);
-
-      return {
-        access_token,
-        user: {
-          id: (savedUser._id as any).toString(),
-          name: savedUser.name!,
-          email: savedUser.email!,
-          role: savedUser.role!,
-          status: savedUser.status!,
-        },
-      };
-    } catch (error) {
-      this.logger.error(`Registration failed for email ${email}:`, error instanceof Error ? error.message : 'Unknown error');
-      throw error;
-    }
+        role: savedUser.role,
+        status: savedUser.status,
+      },
+    };
   }
 
   async login(loginDto: LoginDto): Promise<AuthResponseDto> {
     const { email, password } = loginDto;
 
-    this.logger.log(`Login attempt for email: ${email}`);
-
-    try {
-      // Find user by email
-      const user = await this.userModel.findOne({ email }).exec();
-      if (!user) {
-        this.logger.warn(`Login failed: User not found for email ${email}`);
-        throw new UnauthorizedException('Invalid credentials');
-      }
-
-      // Check if account is not rejected
-      if (user.status === UserStatus.REJECTED) {
-        this.logger.warn(`Login failed: Account rejected for email ${email}`);
-        throw new UnauthorizedException('Account has been rejected. Please contact support.');
-      }
-
-      // Check password
-      const isPasswordValid = await bcrypt.compare(password, user.password!);
-      if (!isPasswordValid) {
-        this.logger.warn(`Login failed: Invalid password for email ${email}`);
-        throw new UnauthorizedException('Invalid credentials');
-      }
-
-      // Generate JWT token
-      const payload = {
-        email: user.email,
-        sub: user._id,
-        role: user.role
-      };
-      const access_token = this.jwtService.sign(payload);
-
-      this.logger.log(`Login successful for user: ${user._id}`);
-
-      return {
-        access_token,
-        user: {
-          id: (user._id as any).toString(),
-          name: user.name!,
-          email: user.email!,
-          role: user.role!,
-          status: user.status!,
-        },
-      };
-    } catch (error) {
-      this.logger.error(`Login failed for email ${email}:`, error instanceof Error ? error.message : 'Unknown error');
-      throw error;
+    // Find user by email
+    const user = await this.userModel.findOne({ email }).exec();
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
     }
+
+    // Check password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Generate JWT token
+    const payload = { email: user.email, sub: user._id, role: user.role };
+    const access_token = this.jwtService.sign(payload);
+
+    return {
+      access_token,
+      user: {
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+      },
+    };
   }
 
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.userModel.findOne({ email }).exec();
-    if (user && user.password && await bcrypt.compare(password, user.password)) {
-      const { password: _, ...result } = user.toObject();
+    if (user && await bcrypt.compare(password, user.password)) {
+      const { password, ...result } = user.toObject();
       return result;
     }
     return null;
@@ -251,64 +217,38 @@ export class AuthService {
     return profile;
   }
 
-  async updateProfile(user: UserDocument, updateData: UpdateProfileDto) {
-    this.logger.log(`Profile update attempt for user: ${user._id}`);
+  async updateProfile(user: UserDocument, updateData: any) {
+    const { coordinates, nurseData, ...userData } = updateData;
 
-    try {
-      const { coordinates, hourlyRate, bio, isAvailable, ...userData } = updateData;
-
-      // Update user data
-      const updateUserData: any = { ...userData };
-      if (coordinates) {
-        updateUserData.location = {
-          type: 'Point',
-          coordinates: coordinates,
-        };
-      }
-
-      const updatedUser = await this.userModel
-        .findByIdAndUpdate(user._id, updateUserData, { new: true })
-        .select('-password')
-        .exec();
-
-      if (!updatedUser) {
-        throw new NotFoundException('User not found');
-      }
-
-      // If user is a nurse and nurse-specific data is provided, update nurse profile
-      if (user.role === UserRole.NURSE && (hourlyRate !== undefined || bio !== undefined || isAvailable !== undefined)) {
-        const nurseUpdateData: any = {};
-        if (hourlyRate !== undefined) nurseUpdateData.hourlyRate = hourlyRate;
-        if (bio !== undefined) nurseUpdateData.bio = bio;
-        if (isAvailable !== undefined) nurseUpdateData.isAvailable = isAvailable;
-
-        await this.nurseProfileModel
-          .findOneAndUpdate(
-            { userId: user._id },
-            nurseUpdateData,
-            { new: true, upsert: true }
-          )
-          .exec();
-
-        this.logger.log(`Nurse profile updated for user: ${user._id}`);
-      }
-
-      this.logger.log(`Profile updated successfully for user: ${user._id}`);
-
-      return {
-        message: 'Profile updated successfully',
-        user: {
-          id: updatedUser._id.toString(),
-          name: updatedUser.name!,
-          email: updatedUser.email!,
-          role: updatedUser.role!,
-          status: updatedUser.status!,
-        },
+    // Update user data
+    const updateUserData: any = { ...userData };
+    if (coordinates) {
+      updateUserData.location = {
+        type: 'Point',
+        coordinates: coordinates,
       };
-    } catch (error) {
-      this.logger.error(`Profile update failed for user ${user._id}:`, error instanceof Error ? error.message : 'Unknown error');
-      throw error;
     }
+
+    const updatedUser = await this.userModel
+      .findByIdAndUpdate(user._id, updateUserData, { new: true })
+      .select('-password')
+      .exec();
+
+    // If user is a nurse and nurse data is provided, update nurse profile
+    if (user.role === UserRole.NURSE && nurseData) {
+      await this.nurseProfileModel
+        .findOneAndUpdate(
+          { userId: user._id },
+          nurseData,
+          { new: true, upsert: true }
+        )
+        .exec();
+    }
+
+    return {
+      message: 'Profile updated successfully',
+      user: updatedUser,
+    };
   }
 
   async verifyEmail(token: string): Promise<{ message: string; user?: any }> {

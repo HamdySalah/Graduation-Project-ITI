@@ -18,7 +18,7 @@ const HeroSection = () => {
         </p>
         <div className="space-x-4 flex justify-center animate-fade-in delay-400">
           <Link
-            href="/find-nurse"
+            href="/nurses"
             className="bg-blue-600 text-white py-3 px-6 rounded-lg shadow-lg hover:bg-blue-700 hover:shadow-xl transition duration-300 transform hover:-translate-y-1"
           >
             Find a Nurse

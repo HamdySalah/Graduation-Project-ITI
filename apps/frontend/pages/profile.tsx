@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../utils/api';
@@ -5,6 +6,7 @@ import ProtectedRoute from '../components/ProtectedRoute';
 
 export default function Profile() {
   const { user } = useAuth();
+
   const [formData, setFormData] = useState({
     name: '',
     phone: '',

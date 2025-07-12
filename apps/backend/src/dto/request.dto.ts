@@ -13,6 +13,7 @@ import {
   Max,
   IsPhoneNumber
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ServiceType, RequestStatus } from '../schemas/patient-request.schema';
 import { SpecializationType } from '../schemas/nurse-profile.schema';
@@ -27,7 +28,7 @@ export class CreateRequestDto {
   @IsString()
   @MinLength(5, { message: 'Title must be at least 5 characters long' })
   @MaxLength(100, { message: 'Title must not exceed 100 characters' })
-  title: string;
+  title!: string;
 
   @ApiProperty({
     description: 'Detailed description of the nursing care needed',
@@ -38,7 +39,7 @@ export class CreateRequestDto {
   @IsString()
   @MinLength(10, { message: 'Description must be at least 10 characters long' })
   @MaxLength(1000, { message: 'Description must not exceed 1000 characters' })
-  description: string;
+  description!: string;
 
   @ApiProperty({
     description: 'Type of nursing service required',
@@ -46,7 +47,7 @@ export class CreateRequestDto {
     example: ServiceType.POST_SURGICAL_CARE,
   })
   @IsEnum(ServiceType, { message: 'Invalid service type' })
-  serviceType: ServiceType;
+  serviceType!: ServiceType;
 
   @ApiProperty({
     description: 'Geographic coordinates [longitude, latitude] for the service location',
@@ -59,7 +60,7 @@ export class CreateRequestDto {
   @ArrayMinSize(2, { message: 'Coordinates must contain exactly 2 values' })
   @ArrayMaxSize(2, { message: 'Coordinates must contain exactly 2 values' })
   @IsNumber({}, { each: true, message: 'Coordinates must be valid numbers' })
-  coordinates: [number, number]; // [longitude, latitude]
+  coordinates!: [number, number]; // [longitude, latitude]
 
   @ApiProperty({
     description: 'Physical address where the service is needed',
@@ -70,7 +71,7 @@ export class CreateRequestDto {
   @IsString()
   @MinLength(10, { message: 'Address must be at least 10 characters long' })
   @MaxLength(255, { message: 'Address must not exceed 255 characters' })
-  address: string;
+  address!: string;
 
   @ApiProperty({
     description: 'Scheduled date and time for the service (ISO 8601 format)',
@@ -78,7 +79,7 @@ export class CreateRequestDto {
     format: 'date-time',
   })
   @IsDateString({}, { message: 'Please provide a valid date in ISO 8601 format' })
-  scheduledDate: string;
+  scheduledDate!: string;
 
   @ApiPropertyOptional({
     description: 'Estimated duration of the service in hours',
@@ -127,7 +128,7 @@ export class CreateRequestDto {
   })
   @IsOptional()
   @IsString()
-  @IsPhoneNumber(null, { message: 'Please provide a valid phone number' })
+  @IsPhoneNumber(undefined, { message: 'Please provide a valid phone number' })
   contactPhone?: string;
 
   @ApiPropertyOptional({
@@ -148,7 +149,7 @@ export class UpdateRequestStatusDto {
     example: RequestStatus.ACCEPTED,
   })
   @IsEnum(RequestStatus, { message: 'Invalid request status' })
-  status: RequestStatus;
+  status!: RequestStatus;
 
   @ApiPropertyOptional({
     description: 'Reason for cancellation (required if status is cancelled)',
@@ -168,10 +169,11 @@ export class GetNearbyNursesDto {
     minimum: -90,
     maximum: 90,
   })
+  @Transform(({ value }) => parseFloat(value))
   @IsNumber({}, { message: 'Latitude must be a valid number' })
   @Min(-90, { message: 'Latitude must be between -90 and 90' })
   @Max(90, { message: 'Latitude must be between -90 and 90' })
-  latitude: number;
+  latitude!: number;
 
   @ApiProperty({
     description: 'Longitude coordinate for the search center',
@@ -179,10 +181,11 @@ export class GetNearbyNursesDto {
     minimum: -180,
     maximum: 180,
   })
+  @Transform(({ value }) => parseFloat(value))
   @IsNumber({}, { message: 'Longitude must be a valid number' })
   @Min(-180, { message: 'Longitude must be between -180 and 180' })
   @Max(180, { message: 'Longitude must be between -180 and 180' })
-  longitude: number;
+  longitude!: number;
 
   @ApiPropertyOptional({
     description: 'Search radius in kilometers',
@@ -192,6 +195,7 @@ export class GetNearbyNursesDto {
     maximum: 100,
   })
   @IsOptional()
+  @Transform(({ value }) => value ? parseFloat(value) : undefined)
   @IsNumber({}, { message: 'Radius must be a valid number' })
   @Min(1, { message: 'Radius must be at least 1 km' })
   @Max(100, { message: 'Radius cannot exceed 100 km' })
@@ -214,52 +218,52 @@ export class RequestResponseDto {
     description: 'Request ID',
     example: '507f1f77bcf86cd799439011',
   })
-  id: string;
+  id!: string;
 
   @ApiProperty({
     description: 'Request title',
     example: 'Post-surgery care needed',
   })
-  title: string;
+  title!: string;
 
   @ApiProperty({
     description: 'Request description',
     example: 'Patient needs post-surgical wound care...',
   })
-  description: string;
+  description!: string;
 
   @ApiProperty({
     description: 'Service type',
     enum: ServiceType,
     example: ServiceType.POST_SURGICAL_CARE,
   })
-  serviceType: ServiceType;
+  serviceType!: ServiceType;
 
   @ApiProperty({
     description: 'Request status',
     enum: RequestStatus,
     example: RequestStatus.PENDING,
   })
-  status: RequestStatus;
+  status!: RequestStatus;
 
   @ApiProperty({
     description: 'Service location coordinates',
     example: [31.233, 30.033],
     type: [Number],
   })
-  coordinates: [number, number];
+  coordinates!: [number, number];
 
   @ApiProperty({
     description: 'Service address',
     example: '123 Main St, Cairo, Egypt',
   })
-  address: string;
+  address!: string;
 
   @ApiProperty({
     description: 'Scheduled date and time',
     example: '2024-12-25T10:00:00Z',
   })
-  scheduledDate: Date;
+  scheduledDate!: Date;
 
   @ApiPropertyOptional({
     description: 'Estimated duration in hours',
@@ -283,13 +287,13 @@ export class RequestResponseDto {
     description: 'Request creation date',
     example: '2024-12-20T10:00:00Z',
   })
-  createdAt: Date;
+  createdAt!: Date;
 
   @ApiProperty({
     description: 'Last update date',
     example: '2024-12-20T10:00:00Z',
   })
-  updatedAt: Date;
+  updatedAt!: Date;
 }
 
 export class DashboardStatsDto {
@@ -297,29 +301,29 @@ export class DashboardStatsDto {
     description: 'Total number of requests',
     example: 25,
   })
-  totalRequests: number;
+  totalRequests!: number;
 
   @ApiProperty({
     description: 'Number of pending requests',
     example: 5,
   })
-  pendingRequests: number;
+  pendingRequests!: number;
 
   @ApiProperty({
     description: 'Number of accepted requests',
     example: 10,
   })
-  acceptedRequests: number;
+  acceptedRequests!: number;
 
   @ApiProperty({
     description: 'Number of completed requests',
     example: 8,
   })
-  completedRequests: number;
+  completedRequests!: number;
 
   @ApiProperty({
     description: 'Number of cancelled requests',
     example: 2,
   })
-  cancelledRequests: number;
+  cancelledRequests!: number;
 }

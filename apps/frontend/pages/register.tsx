@@ -2,7 +2,10 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
+
 export default function Register() {
+  const router = useRouter();
+  const { user } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -80,9 +83,11 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     clearError();
     
     if (!validateForm()) {
+
       return;
     }
     
@@ -197,6 +202,17 @@ export default function Register() {
                 )}
               </div>
               <div>
+                <label className="block text-lg font-semibold text-gray-700">Address</label>
+                <input
+                  type="text"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  className="mt-2 w-full border-b-2 border-purple-300 focus:border-purple-600 focus:outline-none text-xl text-gray-800 placeholder-gray-400 transition duration-300"
+                  required
+                  placeholder="Enter your address"
+                />
+              </div>
+              <div>
                 <label className="block text-lg font-semibold text-gray-700">I am</label>
                 <div className="flex space-x-4 mt-2">
                   <label className="flex items-center">
@@ -205,8 +221,10 @@ export default function Register() {
                       value="nurse"
                       checked={role === 'nurse'}
                       onChange={(e) => setRole(e.target.value as 'nurse' | 'patient')}
+
                       className="mr-2 h-5 w-5 text-purple-600"
                     /> 
+
                     <span className="text-xl text-gray-800">Nurse</span>
                   </label>
                   <label className="flex items-center">
@@ -217,6 +235,7 @@ export default function Register() {
                       onChange={(e) => setRole(e.target.value as 'nurse' | 'patient')}
                       className="mr-2 h-5 w-5 text-purple-600"
                     /> 
+
                     <span className="text-xl text-gray-800">Patient</span>
                   </label>
                 </div>
@@ -248,6 +267,77 @@ export default function Register() {
                     {formErrors.yearsOfExperience && (
                       <p className="text-red-500 text-xs mt-1">{formErrors.yearsOfExperience}</p>
                     )}
+                  </div>
+                  <div>
+                    <label className="block text-lg font-semibold text-gray-700">Education</label>
+                    <input
+                      type="text"
+                      value={education}
+                      onChange={(e) => setEducation(e.target.value)}
+                      className="mt-2 w-full border-b-2 border-purple-300 focus:border-purple-600 focus:outline-none text-xl text-gray-800 placeholder-gray-400 transition duration-300"
+                      placeholder="e.g., Bachelor of Nursing"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-lg font-semibold text-gray-700">Hourly Rate (EGP)</label>
+                    <input
+                      type="number"
+                      value={hourlyRate}
+                      onChange={(e) => setHourlyRate(e.target.value)}
+                      className="mt-2 w-full border-b-2 border-purple-300 focus:border-purple-600 focus:outline-none text-xl text-gray-800 placeholder-gray-400 transition duration-300"
+                      min="0"
+                      step="0.01"
+                      placeholder="Enter hourly rate"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-lg font-semibold text-gray-700">Specializations</label>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {SPECIALIZATIONS.map(spec => (
+                        <button
+                          key={spec.value}
+                          type="button"
+                          onClick={() => handleSpecializationToggle(spec.value)}
+                          className={`px-3 py-1 rounded-full text-sm ${
+                            specializations.includes(spec.value)
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          }`}
+                        >
+                          {spec.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-lg font-semibold text-gray-700">Bio</label>
+                    <textarea
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      className="mt-2 w-full border-2 border-purple-300 focus:border-purple-600 focus:outline-none text-lg text-gray-800 placeholder-gray-400 transition duration-300 rounded-md p-2"
+                      rows={3}
+                      placeholder="Tell patients about your experience and approach to care..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-lg font-semibold text-gray-700">Languages (comma-separated)</label>
+                    <input
+                      type="text"
+                      value={languages}
+                      onChange={(e) => setLanguages(e.target.value)}
+                      className="mt-2 w-full border-b-2 border-purple-300 focus:border-purple-600 focus:outline-none text-xl text-gray-800 placeholder-gray-400 transition duration-300"
+                      placeholder="e.g., Arabic, English, French"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-lg font-semibold text-gray-700">Certifications (comma-separated)</label>
+                    <input
+                      type="text"
+                      value={certifications}
+                      onChange={(e) => setCertifications(e.target.value)}
+                      className="mt-2 w-full border-b-2 border-purple-300 focus:border-purple-600 focus:outline-none text-xl text-gray-800 placeholder-gray-400 transition duration-300"
+                      placeholder="e.g., CPR Certified, BLS, ACLS"
+                    />
                   </div>
                 </>
               )}

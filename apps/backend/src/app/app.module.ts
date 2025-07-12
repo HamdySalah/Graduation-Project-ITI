@@ -8,6 +8,8 @@ import { AuthModule } from '../auth/auth.module';
 import { NursesModule } from '../nurses/nurses.module';
 import { RequestsModule } from '../requests/requests.module';
 import { AdminModule } from '../admin/admin.module';
+import { DashboardModule } from '../dashboard/dashboard.module';
+import { UserManagementModule } from '../user-management/user-management.module';
 import { configValidationSchema } from '../config/config.validation';
 import { GlobalExceptionFilter } from '../common/filters/global-exception.filter';
 import { ResponseInterceptor } from '../common/interceptors/response.interceptor';
@@ -35,6 +37,8 @@ import { ResponseInterceptor } from '../common/interceptors/response.interceptor
     NursesModule,
     RequestsModule,
     AdminModule,
+    DashboardModule,
+    UserManagementModule,
   ],
   controllers: [AppController],
   providers: [
