@@ -14,7 +14,7 @@ export default function Login() {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      router.push('/');
+      router.push('/dashboard');
     }
   }, [user, router]);
 
@@ -25,7 +25,8 @@ export default function Login() {
 
     try {
       await login(email, password);
-      router.push('/');
+      // Redirect to dashboard after successful login
+      router.push('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Invalid email or password');
     } finally {
