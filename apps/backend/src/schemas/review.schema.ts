@@ -11,21 +11,21 @@ export class Review {
     example: '507f1f77bcf86cd799439011'
   })
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  patientId: Types.ObjectId;
+  patientId?: Types.ObjectId;
 
   @ApiProperty({
     description: 'ID of the nurse being reviewed',
     example: '507f1f77bcf86cd799439012'
   })
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  nurseId: Types.ObjectId;
+  nurseId?: Types.ObjectId;
 
   @ApiProperty({
     description: 'ID of the completed request this review is for',
     example: '507f1f77bcf86cd799439013'
   })
   @Prop({ type: Types.ObjectId, ref: 'PatientRequest', required: true })
-  requestId: Types.ObjectId;
+  requestId?: Types.ObjectId;
 
   @ApiProperty({
     description: 'Rating given to the nurse (1-5 stars)',
@@ -34,14 +34,14 @@ export class Review {
     maximum: 5
   })
   @Prop({ type: Number, required: true, min: 1, max: 5 })
-  rating: number;
+  rating?: number;
 
   @ApiProperty({
     description: 'Written review comment',
     example: 'Excellent service! Very professional and caring nurse.'
   })
   @Prop({ type: String, required: true, maxlength: 1000 })
-  comment: string;
+  comment?: string;
 
   @ApiProperty({
     description: 'Specific aspects rated by the patient',
@@ -72,19 +72,19 @@ export class Review {
     example: true
   })
   @Prop({ type: Boolean, default: true })
-  wouldRecommend: boolean;
+  wouldRecommend?: boolean;
 
   @ApiProperty({
     description: 'Review creation timestamp',
     example: '2024-01-15T10:30:00Z'
   })
-  createdAt: Date;
+  createdAt?: Date;
 
   @ApiProperty({
     description: 'Review last update timestamp',
     example: '2024-01-15T10:30:00Z'
   })
-  updatedAt: Date;
+  updatedAt?: Date;
 }
 
 export const ReviewSchema = SchemaFactory.createForClass(Review);

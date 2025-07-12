@@ -37,35 +37,35 @@ export class Payment {
     example: '507f1f77bcf86cd799439011'
   })
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  patientId: Types.ObjectId;
+  patientId?: Types.ObjectId;
 
   @ApiProperty({
     description: 'ID of the nurse receiving the payment',
     example: '507f1f77bcf86cd799439012'
   })
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  nurseId: Types.ObjectId;
+  nurseId?: Types.ObjectId;
 
   @ApiProperty({
     description: 'ID of the related service request',
     example: '507f1f77bcf86cd799439013'
   })
   @Prop({ type: Types.ObjectId, ref: 'PatientRequest', required: true })
-  requestId: Types.ObjectId;
+  requestId?: Types.ObjectId;
 
   @ApiProperty({
     description: 'Payment amount in the smallest currency unit (e.g., cents)',
     example: 15000
   })
   @Prop({ type: Number, required: true })
-  amount: number;
+  amount?: number;
 
   @ApiProperty({
     description: 'Currency code',
     example: 'EGP'
   })
   @Prop({ type: String, required: true, default: 'EGP' })
-  currency: string;
+  currency?: string;
 
   @ApiProperty({
     description: 'Payment status',
@@ -73,7 +73,7 @@ export class Payment {
     example: PaymentStatus.COMPLETED
   })
   @Prop({ type: String, enum: PaymentStatus, default: PaymentStatus.PENDING })
-  status: PaymentStatus;
+  status?: PaymentStatus;
 
   @ApiProperty({
     description: 'Payment method used',
@@ -81,7 +81,7 @@ export class Payment {
     example: PaymentMethod.CREDIT_CARD
   })
   @Prop({ type: String, enum: PaymentMethod, required: true })
-  paymentMethod: PaymentMethod;
+  paymentMethod?: PaymentMethod;
 
   @ApiProperty({
     description: 'Type of payment',
@@ -89,7 +89,7 @@ export class Payment {
     example: PaymentType.SERVICE_PAYMENT
   })
   @Prop({ type: String, enum: PaymentType, default: PaymentType.SERVICE_PAYMENT })
-  paymentType: PaymentType;
+  paymentType?: PaymentType;
 
   @ApiProperty({
     description: 'External payment provider transaction ID',
@@ -110,14 +110,14 @@ export class Payment {
     example: 1500
   })
   @Prop({ type: Number, default: 0 })
-  platformFee: number;
+  platformFee?: number;
 
   @ApiProperty({
     description: 'Net amount received by nurse (amount - platformFee)',
     example: 13500
   })
   @Prop({ type: Number })
-  netAmount: number;
+  netAmount?: number;
 
   @ApiProperty({
     description: 'Payment description',
@@ -179,13 +179,13 @@ export class Payment {
     description: 'Payment creation timestamp',
     example: '2024-01-15T10:30:00Z'
   })
-  createdAt: Date;
+  createdAt?: Date;
 
   @ApiProperty({
     description: 'Payment last update timestamp',
     example: '2024-01-15T10:30:00Z'
   })
-  updatedAt: Date;
+  updatedAt?: Date;
 }
 
 export const PaymentSchema = SchemaFactory.createForClass(Payment);
@@ -223,7 +223,9 @@ PaymentSchema.virtual('request', {
 // Pre-save middleware to calculate net amount
 PaymentSchema.pre('save', function(next) {
   if (this.isModified('amount') || this.isModified('platformFee')) {
-    this.netAmount = this.amount - this.platformFee;
+    const amount = this.amount ?? 0;
+    const platformFee = this.platformFee ?? 0;
+    this.netAmount = amount - platformFee;
   }
   next();
 });

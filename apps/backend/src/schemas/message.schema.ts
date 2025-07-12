@@ -26,14 +26,14 @@ export class Message {
     example: '507f1f77bcf86cd799439011'
   })
   @Prop({ type: Types.ObjectId, ref: 'Conversation', required: true })
-  conversationId: Types.ObjectId;
+  conversationId?: Types.ObjectId;
 
   @ApiProperty({
     description: 'ID of the user who sent the message',
     example: '507f1f77bcf86cd799439012'
   })
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  senderId: Types.ObjectId;
+  senderId?: Types.ObjectId;
 
   @ApiProperty({
     description: 'Type of message',
@@ -41,14 +41,14 @@ export class Message {
     example: MessageType.TEXT
   })
   @Prop({ type: String, enum: MessageType, default: MessageType.TEXT })
-  type: MessageType;
+  type?: MessageType;
 
   @ApiProperty({
     description: 'Message content',
     example: 'Hello, I have a question about the service.'
   })
   @Prop({ type: String, required: true, maxlength: 2000 })
-  content: string;
+  content?: string;
 
   @ApiProperty({
     description: 'File attachment URL (for image/file messages)',
@@ -74,7 +74,7 @@ export class Message {
     example: MessageStatus.READ
   })
   @Prop({ type: String, enum: MessageStatus, default: MessageStatus.SENT })
-  status: MessageStatus;
+  status?: MessageStatus;
 
   @ApiProperty({
     description: 'When the message was delivered',
@@ -94,13 +94,13 @@ export class Message {
     description: 'Message creation timestamp',
     example: '2024-01-15T10:30:00Z'
   })
-  createdAt: Date;
+  createdAt?: Date;
 
   @ApiProperty({
     description: 'Message last update timestamp',
     example: '2024-01-15T10:30:00Z'
   })
-  updatedAt: Date;
+  updatedAt?: Date;
 }
 
 @Schema({ timestamps: true })
@@ -110,14 +110,14 @@ export class Conversation {
     example: '507f1f77bcf86cd799439011'
   })
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  patientId: Types.ObjectId;
+  patientId?: Types.ObjectId;
 
   @ApiProperty({
     description: 'ID of the nurse in the conversation',
     example: '507f1f77bcf86cd799439012'
   })
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  nurseId: Types.ObjectId;
+  nurseId?: Types.ObjectId;
 
   @ApiProperty({
     description: 'ID of the related service request (optional)',
@@ -152,40 +152,40 @@ export class Conversation {
     example: 2
   })
   @Prop({ type: Number, default: 0 })
-  unreadCountPatient: number;
+  unreadCountPatient?: number;
 
   @ApiProperty({
     description: 'Number of unread messages for the nurse',
     example: 0
   })
   @Prop({ type: Number, default: 0 })
-  unreadCountNurse: number;
+  unreadCountNurse?: number;
 
   @ApiProperty({
     description: 'Whether the conversation is archived by the patient',
     example: false
   })
   @Prop({ type: Boolean, default: false })
-  archivedByPatient: boolean;
+  archivedByPatient?: boolean;
 
   @ApiProperty({
     description: 'Whether the conversation is archived by the nurse',
     example: false
   })
   @Prop({ type: Boolean, default: false })
-  archivedByNurse: boolean;
+  archivedByNurse?: boolean;
 
   @ApiProperty({
     description: 'Conversation creation timestamp',
     example: '2024-01-15T10:30:00Z'
   })
-  createdAt: Date;
+  createdAt?: Date;
 
   @ApiProperty({
     description: 'Conversation last update timestamp',
     example: '2024-01-15T10:35:00Z'
   })
-  updatedAt: Date;
+  updatedAt?: Date;
 }
 
 export const MessageSchema = SchemaFactory.createForClass(Message);

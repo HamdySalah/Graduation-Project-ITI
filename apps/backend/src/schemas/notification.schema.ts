@@ -31,7 +31,7 @@ export class Notification {
     example: '507f1f77bcf86cd799439011'
   })
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
-  userId: Types.ObjectId;
+  userId?: Types.ObjectId;
 
   @ApiProperty({
     description: 'Type of notification',
@@ -39,21 +39,21 @@ export class Notification {
     example: NotificationType.REQUEST_ACCEPTED
   })
   @Prop({ type: String, enum: NotificationType, required: true })
-  type: NotificationType;
+  type?: NotificationType;
 
   @ApiProperty({
     description: 'Notification title',
     example: 'Request Accepted'
   })
   @Prop({ type: String, required: true, maxlength: 100 })
-  title: string;
+  title?: string;
 
   @ApiProperty({
     description: 'Notification message',
     example: 'Your nursing request has been accepted by Sara Ibrahim.'
   })
   @Prop({ type: String, required: true, maxlength: 500 })
-  message: string;
+  message?: string;
 
   @ApiProperty({
     description: 'Notification priority level',
@@ -61,14 +61,14 @@ export class Notification {
     example: NotificationPriority.MEDIUM
   })
   @Prop({ type: String, enum: NotificationPriority, default: NotificationPriority.MEDIUM })
-  priority: NotificationPriority;
+  priority?: NotificationPriority;
 
   @ApiProperty({
     description: 'Whether the notification has been read',
     example: false
   })
   @Prop({ type: Boolean, default: false })
-  isRead: boolean;
+  isRead?: boolean;
 
   @ApiProperty({
     description: 'Related entity ID (request, user, etc.)',
@@ -116,13 +116,13 @@ export class Notification {
     description: 'Notification creation timestamp',
     example: '2024-01-15T10:30:00Z'
   })
-  createdAt: Date;
+  createdAt?: Date;
 
   @ApiProperty({
     description: 'Notification last update timestamp',
     example: '2024-01-15T10:30:00Z'
   })
-  updatedAt: Date;
+  updatedAt?: Date;
 }
 
 export const NotificationSchema = SchemaFactory.createForClass(Notification);
