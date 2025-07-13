@@ -64,9 +64,15 @@ export default function CreateRequest() {
         budget: parseFloat(formData.budget),
       };
 
-      await apiService.createRequest(requestData);
+      console.log('Submitting request:', requestData);
+      const result = await apiService.createRequest(requestData);
+      console.log('Request created:', result);
+
+      // Show success message and redirect
+      alert('Request created successfully!');
       router.push('/requests');
     } catch (err: any) {
+      console.error('Error creating request:', err);
       setError(err.message || 'Failed to create request');
     } finally {
       setLoading(false);

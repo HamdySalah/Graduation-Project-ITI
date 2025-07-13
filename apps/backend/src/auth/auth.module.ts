@@ -16,7 +16,7 @@ import { EmailModule } from '../email/email.module';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
+        secret: configService.get<string>('JWT_SECRET') || 'nurse-platform-super-secret-jwt-key-2024',
         signOptions: {
           expiresIn: '24h',
           issuer: 'nurse-platform',
