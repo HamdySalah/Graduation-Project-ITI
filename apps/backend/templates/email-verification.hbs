@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Email - Nurse Platform</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            color: #2c5aa0;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #2c5aa0;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            color: #666;
+            font-size: 14px;
+        }
+        .highlight {
+            background-color: #f0f8ff;
+            padding: 15px;
+            border-left: 4px solid #2c5aa0;
+            margin: 20px 0;
+        }
+        .verification-link {
+            word-break: break-all;
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🏥 Nurse Platform</div>
+            <h1>Verify Your Email Address</h1>
+        </div>
+        
+        <div class="content">
+            <p>Dear {{name}},</p>
+            
+            <p>Thank you for registering with Nurse Platform! To complete your registration, please verify your email address by clicking the button below:</p>
+            
+            <div style="text-align: center;">
+                <a href="{{verificationUrl}}" class="button">Verify Email Address</a>
+            </div>
+            
+            <div class="highlight">
+                <h3>🔒 Security Notice</h3>
+                <p>This verification link will expire in 24 hours for security reasons. If you don't verify your email within this time, you'll need to request a new verification link.</p>
+            </div>
+            
+            <p>If the button above doesn't work, you can copy and paste the following link into your browser:</p>
+            <div class="verification-link">{{verificationUrl}}</div>
+            
+            <p>If you didn't create an account with Nurse Platform, please ignore this email.</p>
+        </div>
+        
+        <div class="footer">
+            <p>If you have any questions, please contact our support team.</p>
+            <p>Thank you for choosing Nurse Platform!</p>
+            <p><small>This email was sent to {{email}}. If you didn't register for this account, please ignore this email.</small></p>
+        </div>
+    </div>
+</body>
+</html> 

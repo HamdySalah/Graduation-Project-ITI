@@ -315,29 +315,4 @@ export class RequestsService {
 
     return stats;
   }
-
-  // Temporary method for basic dashboard stats without authentication
-  async getBasicDashboardStats() {
-    try {
-      const totalRequests = await this.requestModel.countDocuments().exec();
-      const pendingRequests = await this.requestModel.countDocuments({ status: RequestStatus.PENDING }).exec();
-      const acceptedRequests = await this.requestModel.countDocuments({ status: RequestStatus.ACCEPTED }).exec();
-      const completedRequests = await this.requestModel.countDocuments({ status: RequestStatus.COMPLETED }).exec();
-      const cancelledRequests = await this.requestModel.countDocuments({ status: RequestStatus.CANCELLED }).exec();
-
-      this.logger.log(`Retrieved basic dashboard stats: ${totalRequests} total requests`);
-
-      return {
-        totalRequests,
-        pendingRequests,
-        acceptedRequests,
-        completedRequests,
-        cancelledRequests,
-        successRate: totalRequests > 0 ? Math.round((completedRequests / totalRequests) * 100) : 0,
-      };
-    } catch (error) {
-      this.logger.error(`Failed to retrieve basic dashboard stats:`, error instanceof Error ? error.message : 'Unknown error');
-      throw error;
-    }
-  }
 }
