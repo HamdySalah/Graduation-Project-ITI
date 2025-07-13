@@ -23,8 +23,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'defaultSecret',
-      issuer: 'nurse-platform-api',
+      secretOrKey: process.env.JWT_SECRET || 'nurse-platform-super-secret-jwt-key-2024',
+      issuer: 'nurse-platform',
       audience: 'nurse-platform-users',
     });
   }

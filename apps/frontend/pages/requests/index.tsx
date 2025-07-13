@@ -3,7 +3,6 @@ import { useAuth } from '../../lib/auth';
 import Layout, { Card, LoadingSpinner, StatusBadge } from '../../components/Layout';
 import { apiService } from '../../lib/api';
 import Link from 'next/link';
-import NurseProtectedRoute from '../../components/NurseProtectedRoute';
 
 interface Request {
   id: string;
@@ -82,8 +81,29 @@ function RequestsList() {
     return baseFilters;
   };
 
+  // Check if user is logged in
   if (!user) {
-    return null; // Will redirect to login
+    return (
+      <Layout>
+        <div className="text-center py-8">
+          <p className="text-red-600">Please log in to view requests.</p>
+          <div className="mt-4">
+            <a href="/login" className="text-blue-600 hover:text-blue-800">Login</a>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Allow both patients and nurses to access this page
+  if (user.role !== 'patient' && user.role !== 'nurse' && user.role !== 'admin') {
+    return (
+      <Layout>
+        <div className="text-center py-8">
+          <p className="text-red-600">Access denied. Only patients, nurses, and admins can view requests.</p>
+        </div>
+      </Layout>
+    );
   }
 
   return (
@@ -304,10 +324,5 @@ function RequestCard({
   );
 }
 
-export default function ProtectedRequestsList() {
-  return (
-    <NurseProtectedRoute requireVerified={true}>
-      <RequestsList />
-    </NurseProtectedRoute>
-  );
-}
+// Remove the nurse-only protection and allow both patients and nurses
+export default RequestsList;
