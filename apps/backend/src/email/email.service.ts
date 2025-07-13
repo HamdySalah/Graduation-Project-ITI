@@ -22,6 +22,7 @@ export class EmailService {
         template: 'email-verification',
         context: {
           name,
+          email,
           verificationUrl,
           frontendUrl,
         },
@@ -42,6 +43,7 @@ export class EmailService {
         template: 'welcome',
         context: {
           name,
+          email,
           frontendUrl: this.configService.get<string>('FRONTEND_URL'),
         },
       });
