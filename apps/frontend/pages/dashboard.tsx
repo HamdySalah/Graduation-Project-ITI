@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../lib/auth';
+import { useNurseAccessStatus } from '../hooks/useNurseAccessStatus';
 import Layout, { Card, LoadingSpinner, StatusBadge } from '../components/Layout';
 import { apiService } from '../lib/api';
-import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import SessionStatus from '../components/SessionStatus';
 import ErrorBoundary from '../components/ErrorBoundary';
+import { navigationUtils } from '../lib/navigation';
 
 interface DashboardStats {
   totalRequests?: number;
@@ -80,6 +81,14 @@ interface Request {
 
 export default function Dashboard() {
   const { user, loading } = useAuth();
+  const {
+    accessStatus,
+    canAccessDashboard,
+    needsProfileCompletion,
+    isUnderReview,
+    getCompletionStatus,
+    getRedirectInfo
+  } = useNurseAccessStatus();
   const [stats, setStats] = useState<DashboardStats>({});
   const [recentRequests, setRecentRequests] = useState<Request[]>([]);
   const [pendingNurses, setPendingNurses] = useState<Nurse[]>([]);
@@ -116,14 +125,48 @@ export default function Dashboard() {
         const [statsData, requestsData] = await Promise.all([
           apiService.getDashboardStats().catch((err) => {
             console.warn('Dashboard stats failed:', err);
+            setError('Failed to load dashboard statistics. Please refresh the page.');
             return {};
           }),
           apiService.getRequests().catch((err) => {
             console.warn('Requests failed:', err);
+            setError('Failed to load recent requests. Please refresh the page.');
             return [];
           })
         ]);
-        setStats((statsData || {}) as DashboardStats);
+        // Handle nested stats structure from backend
+        let processedStats = {};
+        console.log('Raw stats data received:', statsData);
+        console.log('User role:', user?.role);
+
+        if (statsData && typeof statsData === 'object') {
+          if (user?.role === 'patient' && statsData.patient) {
+            console.log('Processing patient stats:', statsData.patient);
+            processedStats = {
+              totalRequests: statsData.patient.totalRequests || 0,
+              pendingRequests: statsData.patient.pendingRequests || 0,
+              acceptedRequests: statsData.patient.acceptedRequests || 0,
+              completedRequests: statsData.patient.completedRequests || 0,
+              cancelledRequests: statsData.patient.cancelledRequests || 0,
+            };
+          } else if (user?.role === 'nurse' && statsData.nurse) {
+            console.log('Processing nurse stats:', statsData.nurse);
+            processedStats = {
+              totalRequests: statsData.nurse.totalAssignedRequests || 0,
+              acceptedRequests: statsData.nurse.activeRequests || 0,
+              inProgressRequests: statsData.nurse.activeRequests || 0,
+              completedRequests: statsData.nurse.completedRequests || 0,
+              totalEarnings: 0, // TODO: Calculate from completed requests
+              averageRating: 0, // TODO: Get from reviews
+            };
+          } else {
+            console.log('Using fallback stats processing');
+            // Fallback to direct stats if no nested structure
+            processedStats = statsData;
+          }
+        }
+        console.log('Processed stats:', processedStats);
+        setStats(processedStats as DashboardStats);
         setRecentRequests(Array.isArray(requestsData) ? requestsData.slice(0, 5) : []);
       }
       console.log('Dashboard data loaded successfully');
@@ -277,12 +320,12 @@ export default function Dashboard() {
             </div>
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Authentication Required</h2>
             <p className="text-gray-600 mb-6">Please log in to access your dashboard.</p>
-            <Link
-              href="/login"
+            <button
+              onClick={() => navigationUtils.goToLogin()}
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
               Go to Login
-            </Link>
+            </button>
           </div>
         </div>
       </Layout>
@@ -1043,14 +1086,25 @@ export default function Dashboard() {
             <div>
               <h2 className="text-2xl font-bold text-gray-900">Welcome back, {user.name}!</h2>
               <p className="text-gray-600 mt-1">
-                {user.role === 'patient' ? 'Find qualified nurses for your healthcare needs' : 
-                 user.role === 'nurse' ? 'Manage your nursing services and requests' : 
+                {user.role === 'patient' ? 'Find qualified nurses for your healthcare needs' :
+                 user.role === 'nurse' ? 'Manage your nursing services and requests' :
                  'Manage your account'}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-500">Role</p>
-              <p className="text-lg font-semibold text-blue-600 capitalize">{user.role}</p>
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={loadDashboardData}
+                  disabled={loadingStats}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors disabled:opacity-50"
+                >
+                  {loadingStats ? '🔄' : '🔄'} Refresh
+                </button>
+                <div>
+                  <p className="text-sm text-gray-500">Role</p>
+                  <p className="text-lg font-semibold text-blue-600 capitalize">{user.role}</p>
+                </div>
+              </div>
             </div>
           </div>
         </Card>
@@ -1119,24 +1173,86 @@ export default function Dashboard() {
         {/* Quick Actions */}
         <Card className="p-6">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {user.role === 'patient' && (
               <>
-                <Link href="/requests/create" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-center transition-colors">
-                  Create New Request
-                </Link>
-                <Link href="/nurses" className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-center transition-colors">
-                  Find Nurses
-                </Link>
-                <Link href="/profile" className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md text-center transition-colors">
-                  Update Profile
-                </Link>
+                <button
+                  onClick={() => {
+                    console.log('Dashboard: Navigating to /requests/create');
+                    navigationUtils.goToCreateRequest();
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-center transition-colors block w-full"
+                >
+                  📝 Create New Request
+                </button>
+                <button
+                  onClick={() => {
+                    console.log('Dashboard: Navigating to /requests');
+                    navigationUtils.navigateTo('/requests');
+                  }}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-center transition-colors block w-full"
+                >
+                  📋 View My Requests
+                </button>
+                <button
+                  onClick={() => {
+                    console.log('Dashboard: Navigating to /nurses');
+                    navigationUtils.goToNurses();
+                  }}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md text-center transition-colors block w-full"
+                >
+                  👩‍⚕️ Find Nurses
+                </button>
+                <button
+                  onClick={() => {
+                    console.log('Dashboard: Navigating to /profile');
+                    navigationUtils.goToProfile();
+                  }}
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-center transition-colors block w-full"
+                >
+                  ⚙️ Update Profile
+                </button>
               </>
             )}
 
             {user.role === 'nurse' && (
               <>
-                {user.status === 'pending' ? (
+                {needsProfileCompletion ? (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center col-span-3">
+                    <div className="w-16 h-16 bg-blue-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                      <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-semibold text-blue-800 mb-2">Complete Your Profile</h3>
+                    <p className="text-blue-700 mb-4">
+                      Please complete your nurse profile setup to access all platform features.
+                    </p>
+                    {(() => {
+                      const completionStatus = getCompletionStatus();
+                      return completionStatus && (
+                        <div className="mb-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-blue-700 text-sm font-medium">Progress</span>
+                            <span className="text-blue-700 text-sm font-medium">{completionStatus.percentage}%</span>
+                          </div>
+                          <div className="w-full bg-blue-200 rounded-full h-2">
+                            <div
+                              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${completionStatus.percentage}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    <button
+                      onClick={() => navigationUtils.navigateTo('/nurse-profile-complete')}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg transition-colors"
+                    >
+                      Continue Setup
+                    </button>
+                  </div>
+                ) : isUnderReview ? (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center col-span-3">
                     <div className="animate-pulse">
                       <div className="w-16 h-16 bg-yellow-100 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -1145,29 +1261,50 @@ export default function Dashboard() {
                         </svg>
                       </div>
                     </div>
-                    <h3 className="text-lg font-semibold text-yellow-800 mb-2">Account Pending Verification</h3>
+                    <h3 className="text-lg font-semibold text-yellow-800 mb-2">Profile Under Review</h3>
                     <p className="text-yellow-700 mb-4">
-                      Your nurse account is currently under review by our admin team.
-                      You'll be able to access all features once your account is verified.
+                      Your nurse profile is currently being reviewed by our admin team.
+                      You'll be able to access all features once your profile is approved.
                     </p>
                     <div className="flex items-center justify-center space-x-2 text-sm text-yellow-600">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
                       <span>Awaiting admin approval...</span>
                     </div>
                   </div>
-                ) : user.status === 'verified' ? (
+                ) : canAccessDashboard ? (
                   <>
-                    <Link href="/requests" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-center transition-colors">
-                      View Available Requests
-                    </Link>
-                    <Link href="/profile" className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-center transition-colors">
-                      Update Profile
-                    </Link>
+                    <button
+                      onClick={() => {
+                        console.log('Dashboard: Nurse navigating to /requests');
+                        navigationUtils.navigateTo('/requests');
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-center transition-colors block w-full"
+                    >
+                      📋 View Available Requests
+                    </button>
+                    <button
+                      onClick={() => {
+                        console.log('Dashboard: Nurse navigating to /requests?status=accepted');
+                        navigationUtils.navigateTo('/requests?status=accepted');
+                      }}
+                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-center transition-colors block w-full"
+                    >
+                      ✅ My Active Requests
+                    </button>
+                    <button
+                      onClick={() => {
+                        console.log('Dashboard: Nurse navigating to /profile');
+                        navigationUtils.goToProfile();
+                      }}
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md text-center transition-colors block w-full"
+                    >
+                      ⚙️ Update Profile
+                    </button>
                     <button
                       onClick={() => apiService.toggleNurseAvailability()}
-                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md text-center transition-colors"
+                      className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-center transition-colors w-full"
                     >
-                      Toggle Availability
+                      🔄 Toggle Availability
                     </button>
                   </>
                 ) : (
@@ -1205,12 +1342,15 @@ export default function Dashboard() {
                   </div>
                   <div className="flex items-center space-x-4">
                     <StatusBadge status={request.status} />
-                    <Link
-                      href={`/requests/${request.id}`}
+                    <button
+                      onClick={() => {
+                        console.log(`Dashboard: Navigating to /requests/${request.id}`);
+                        navigationUtils.goToRequest(request.id);
+                      }}
                       className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                     >
                       View Details
-                    </Link>
+                    </button>
                   </div>
                 </div>
               ))}

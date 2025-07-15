@@ -1,5 +1,6 @@
 import { ReactNode, useState, useRef, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
+import { useNurseAccessStatus } from '../hooks/useNurseAccessStatus';
 import { useDropdownNavigation } from '../lib/navigation';
 import Link from 'next/link';
 
@@ -10,6 +11,7 @@ interface LayoutProps {
 
 export default function Layout({ children, title }: LayoutProps) {
   const { user, logout } = useAuth();
+  const { canViewRequests, canAccessPlatform } = useNurseAccessStatus();
   const { navigateAndClose } = useDropdownNavigation();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -112,12 +114,21 @@ export default function Layout({ children, title }: LayoutProps) {
                           </>
                         )}
 
-                        {user.role === 'nurse' && (
+                        {user.role === 'nurse' && canViewRequests && (
                           <button
-                            onClick={() => handleNavigation('/requests')}
+                            onClick={() => navigateAndClose('/requests', () => setIsDropdownOpen(false))}
                             className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
                           >
                             My Requests
+                          </button>
+                        )}
+
+                        {user.role === 'nurse' && !canAccessPlatform && (
+                          <button
+                            onClick={() => navigateAndClose('/nurse-profile-complete', () => setIsDropdownOpen(false))}
+                            className="w-full text-left block px-4 py-2 text-blue-700 hover:bg-blue-50 transition-colors font-medium"
+                          >
+                            Complete Profile
                           </button>
                         )}
 

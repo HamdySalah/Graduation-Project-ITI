@@ -11,7 +11,7 @@ import { AdminModule } from '../admin/admin.module';
 import { DashboardModule } from '../dashboard/dashboard.module';
 import { UserManagementModule } from '../user-management/user-management.module';
 import { ReviewsModule } from '../reviews/reviews.module';
-import { EmailModule } from '../email/email.module';
+// import { EmailModule } from '../email/email.module'; // Temporarily disabled due to build issues
 import { configValidationSchema } from '../config/config.validation';
 import { GlobalExceptionFilter } from '../common/filters/global-exception.filter';
 import { ResponseInterceptor } from '../common/interceptors/response.interceptor';
@@ -42,7 +42,7 @@ import { ResponseInterceptor } from '../common/interceptors/response.interceptor
     DashboardModule,
     UserManagementModule,
     ReviewsModule,
-    EmailModule,
+    // EmailModule, // Temporarily disabled due to build issues
   ],
   controllers: [AppController],
   providers: [

@@ -1,11 +1,9 @@
 import Link from 'next/link';
 import { useState, useRef, useEffect } from 'react';
-import { useRouter } from 'next/router';
 import { useAuth } from '../lib/auth';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
-  const router = useRouter();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -25,27 +23,6 @@ const Navbar = () => {
 
   const closeDropdown = () => {
     setIsDropdownOpen(false);
-  };
-
-  const handleNavigation = async (url: string) => {
-    console.log(`Navbar: Navigating to ${url}`);
-    setIsDropdownOpen(false);
-
-    // For now, use window.location as a workaround for Next.js 15 + React 19 routing issues
-    console.log(`Navbar: Using window.location fallback for ${url}`);
-    window.location.href = url;
-
-    /*
-    // Original router.push approach - commented out due to Next.js 15 + React 19 compatibility issues
-    try {
-      await router.push(url);
-      console.log(`Navbar: Successfully navigated to ${url}`);
-    } catch (error) {
-      console.error(`Navbar: Navigation error to ${url}:`, error);
-      // Fallback to window.location
-      window.location.href = url;
-    }
-    */
   };
 
   return (
