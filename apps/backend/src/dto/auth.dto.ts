@@ -4,24 +4,24 @@ import { SpecializationType } from '../schemas/nurse-profile.schema';
 
 export class RegisterDto {
   @IsString()
-  name: string;
+  name!: string;
 
   @IsEmail()
-  email: string;
+  email!: string;
 
   @IsString()
   @MinLength(6)
-  password: string;
+  password!: string;
 
   @IsString()
-  phone: string;
+  phone!: string;
 
   @IsEnum(UserRole)
-  role: UserRole;
+  role!: UserRole;
 
   @IsArray()
   @IsNumber({}, { each: true })
-  coordinates: [number, number]; // [longitude, latitude]
+  coordinates!: [number, number]; // [longitude, latitude]
 
   @IsOptional()
   @IsString()
@@ -71,10 +71,10 @@ export class RegisterDto {
 
 export class LoginDto {
   @IsEmail()
-  email: string;
+  email!: string;
 
   @IsString()
-  password: string;
+  password!: string;
 }
 
 export class AuthResponseDto {

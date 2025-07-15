@@ -8,6 +8,7 @@ import CallToAction from '../components/CallToAction';
 import HowItWorks from '../components/HowItWorks';
 import PlatformFeatures from '../components/PlatformFeatures';
 import VerificationProcess from '../components/VerificationProcess';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 export default function Home() {
   const { loading } = useAuth();
@@ -20,32 +21,34 @@ export default function Home() {
     );
   }
   return (
-    <div className="scroll-smooth">
-      <Navbar />
-      <section id="home">
-        <HeroSection />
-      </section>
-      <section id="how-it-works">
-        <HowItWorks />
-      </section>
-      <section id="platform-features">
-        <PlatformFeatures />
-      </section>
-      <section>
-        <VerificationProcess />
-      </section>
-      <section>
-        <TestimonialSection />
-      </section>
-      <section>
-        <CallToAction />
-      </section>
-      <section id="contact-us">
-        <ContactUs />
-      </section>
-      <section>
-        <Footer />
-      </section>
-    </div>
+    <ErrorBoundary>
+      <div className="scroll-smooth">
+        <Navbar />
+        <section id="home">
+          <HeroSection />
+        </section>
+        <section id="how-it-works">
+          <HowItWorks />
+        </section>
+        <section id="platform-features">
+          <PlatformFeatures />
+        </section>
+        <section>
+          <VerificationProcess />
+        </section>
+        <section>
+          <TestimonialSection />
+        </section>
+        <section>
+          <CallToAction />
+        </section>
+        <section id="contact-us">
+          <ContactUs />
+        </section>
+        <section>
+          <Footer />
+        </section>
+      </div>
+    </ErrorBoundary>
   );
 }

@@ -8,7 +8,7 @@ export interface User {
   name: string;
   email: string;
   role: 'patient' | 'nurse' | 'admin';
-  status: 'pending' | 'verified' | 'suspended';
+  status: 'pending' | 'verified' | 'suspended' | 'rejected';
   phone?: string;
   location?: {
     type: string;

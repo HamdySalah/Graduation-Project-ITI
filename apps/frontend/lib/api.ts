@@ -121,6 +121,21 @@ class ApiService {
       });
 
       console.log('Login response status:', response.status);
+
+      // Handle authentication failures specifically for login
+      if (response.status === 401) {
+        let errorMessage = 'Invalid email or password. Please try again.';
+        try {
+          const errorData = await response.json();
+          console.log('Login error response:', errorData);
+          // Use backend error message if available, otherwise use generic message
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          console.log('Failed to parse login error response:', e);
+        }
+        throw new Error(errorMessage);
+      }
+
       const result = await this.handleResponse(response);
 
       // Set token expiration reminder if we have a token
@@ -261,26 +276,13 @@ class ApiService {
       console.log('Create request response status:', response.status);
 
       if (response.status === 401) {
-        console.log('Auth failed for create request, simulating success...');
-        // Return a mock success response for testing
-        return {
-          id: 'mock-created-' + Date.now(),
-          ...requestData,
-          status: 'pending',
-          createdAt: new Date().toISOString(),
-        };
+        throw new Error('Authentication required. Please log in.');
       }
 
       return this.handleResponse(response);
     } catch (error) {
       console.error('Error creating request:', error);
-      // Simulate success for testing
-      return {
-        id: 'error-mock-created-' + Date.now(),
-        ...requestData,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-      };
+      throw error;
     }
   }
 
@@ -299,53 +301,9 @@ class ApiService {
 
       console.log('Response status:', response.status);
 
-      // If unauthorized, return mock data for testing
+      // If unauthorized, throw error for proper handling
       if (response.status === 401) {
-        console.log('Auth failed, returning mock data for testing...');
-        return [
-          {
-            id: 'mock-1',
-            title: 'Mock Request 1',
-            description: 'This is a mock request for testing purposes',
-            serviceType: 'home_care',
-            status: 'pending',
-            address: 'Mock Address, Cairo',
-            scheduledDate: new Date().toISOString(),
-            estimatedDuration: 2,
-            urgencyLevel: 'medium',
-            budget: 150,
-            contactPhone: '+201234567890',
-            notes: 'Mock request notes',
-            createdAt: new Date().toISOString(),
-            patient: {
-              id: 'mock-patient-1',
-              name: 'Mock Patient',
-              phone: '+201234567890',
-              email: 'patient@example.com'
-            }
-          },
-          {
-            id: 'mock-2',
-            title: 'Mock Request 2',
-            description: 'Another mock request for testing',
-            serviceType: 'medication_administration',
-            status: 'pending',
-            address: 'Another Mock Address, Cairo',
-            scheduledDate: new Date().toISOString(),
-            estimatedDuration: 3,
-            urgencyLevel: 'high',
-            budget: 200,
-            contactPhone: '+201234567891',
-            notes: 'Another mock request',
-            createdAt: new Date().toISOString(),
-            patient: {
-              id: 'mock-patient-2',
-              name: 'Another Mock Patient',
-              phone: '+201234567891',
-              email: 'patient2@example.com'
-            }
-          }
-        ];
+        throw new Error('Authentication required. Please log in.');
       }
 
       const result = await this.handleResponse(response);
@@ -367,30 +325,7 @@ class ApiService {
       }
     } catch (error) {
       console.error('Error fetching requests:', error);
-      // Return mock data for testing instead of empty array
-      return [
-        {
-          id: 'error-mock-1',
-          title: 'Error Mock Request',
-          description: 'This request is shown due to API error',
-          serviceType: 'home_care',
-          status: 'pending',
-          address: 'Error Mock Address, Cairo',
-          scheduledDate: new Date().toISOString(),
-          estimatedDuration: 1,
-          urgencyLevel: 'low',
-          budget: 100,
-          contactPhone: '+201234567892',
-          notes: 'Error mock request',
-          createdAt: new Date().toISOString(),
-          patient: {
-            id: 'error-mock-patient',
-            name: 'Error Mock Patient',
-            phone: '+201234567892',
-            email: 'error@example.com'
-          }
-        }
-      ];
+      throw error;
     }
   }
 
@@ -419,15 +354,9 @@ class ApiService {
         headers: this.getAuthHeaders(),
       });
 
-      // If unauthorized or server error, try without auth headers (temporary fix)
-      if (response.status === 401 || response.status === 500) {
-        console.log('Auth failed for dashboard stats, trying without headers...');
-        response = await fetch(`${API_BASE_URL}/api/requests/dashboard/stats`, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-        });
+      // If unauthorized, throw error for proper handling
+      if (response.status === 401) {
+        throw new Error('Authentication required. Please log in.');
       }
 
       const result = await this.handleResponse(response);

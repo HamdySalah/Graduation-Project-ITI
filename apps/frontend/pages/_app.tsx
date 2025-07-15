@@ -1,7 +1,6 @@
 import '../styles/globals.css';
 import type { AppProps } from 'next/app';
 import { AuthProvider } from '../lib/auth';
-import ErrorBoundary from '../components/ErrorBoundary';
 import { useEffect } from 'react';
 
 function MyApp({ Component, pageProps }: AppProps) {
@@ -29,11 +28,9 @@ function MyApp({ Component, pageProps }: AppProps) {
   }, []);
 
   return (
-    <ErrorBoundary>
-      <AuthProvider>
-        <Component {...pageProps} />
-      </AuthProvider>
-    </ErrorBoundary>
+    <AuthProvider>
+      <Component {...pageProps} />
+    </AuthProvider>
   );
 }
 
