@@ -27,6 +27,7 @@ export class NurseProfileCompletionMiddleware implements NestMiddleware {
     const allowedPaths = [
       '/api/auth',
       '/api/nurse-profile',
+      '/api/nurse-profile-status', // Allow access to nurse profile status endpoints
       '/api/profile',
       '/api/users/profile',
       '/api/dashboard/overview', // Allow basic dashboard access for status checking
