@@ -29,7 +29,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: JwtPayload): Promise<UserDocument> {
+  async validate(payload: JwtPayload): Promise<any> {
     const { sub } = payload;
 
     const user = await this.userModel.findById(sub).exec();
@@ -42,6 +42,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Account has been rejected');
     }
 
-    return user;
+    // Always return a plain object with all required fields for downstream guards/controllers
+    return {
+      id: String(user._id),
+      role: user.role,
+      email: user.email,
+      status: user.status,
+    };
   }
 }

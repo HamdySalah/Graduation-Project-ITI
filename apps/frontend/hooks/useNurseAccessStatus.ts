@@ -52,7 +52,34 @@ export function useNurseAccessStatus() {
       });
 
       if (!accessResponse.ok) {
-        throw new Error('Failed to fetch access status');
+        // If API is not available, provide fallback logic based on user status
+        console.warn('Nurse profile status API not available, using fallback logic');
+
+        const fallbackStatus: NurseAccessStatus = {
+          canAccessPlatform: user.status === 'verified',
+          canAccessDashboard: user.status === 'verified',
+          canViewRequests: user.status === 'verified',
+          canCreateRequests: user.status === 'verified',
+          canAccessProfile: true,
+          profileCompletionStatus: user.status === 'verified' ? 'approved' : 'not_started',
+          redirectTo: user.status === 'verified' ? undefined : '/nurse-profile-complete',
+          reason: user.status === 'verified' ? undefined : 'Profile completion required',
+          nextRequiredAction: user.status === 'verified' ? 'none' : 'complete_profile',
+          currentStep: user.status === 'verified' ? undefined : 1,
+        };
+
+        setAccessStatus(fallbackStatus);
+
+        const fallbackStepInfo: ProfileStepInfo = {
+          nextStep: user.status === 'verified' ? 4 : 1,
+          completionPercentage: user.status === 'verified' ? 100 : 0,
+          statusMessage: user.status === 'verified'
+            ? 'Welcome! You have full access to the platform.'
+            : 'Please complete your profile setup to access the platform.',
+        };
+
+        setStepInfo(fallbackStepInfo);
+        return;
       }
 
       const accessResult = await accessResponse.json();
@@ -73,6 +100,22 @@ export function useNurseAccessStatus() {
 
     } catch (err: any) {
       console.error('Error fetching nurse access status:', err);
+
+      // Provide fallback status on error
+      const fallbackStatus: NurseAccessStatus = {
+        canAccessPlatform: user.status === 'verified',
+        canAccessDashboard: user.status === 'verified',
+        canViewRequests: user.status === 'verified',
+        canCreateRequests: user.status === 'verified',
+        canAccessProfile: true,
+        profileCompletionStatus: user.status === 'verified' ? 'approved' : 'not_started',
+        redirectTo: user.status === 'verified' ? undefined : '/nurse-profile-complete',
+        reason: user.status === 'verified' ? undefined : 'Profile completion required',
+        nextRequiredAction: user.status === 'verified' ? 'none' : 'complete_profile',
+        currentStep: user.status === 'verified' ? undefined : 1,
+      };
+
+      setAccessStatus(fallbackStatus);
       setError(err.message || 'Failed to fetch access status');
     } finally {
       setLoading(false);
@@ -100,10 +143,13 @@ export function useNurseAccessStatus() {
         return result.data.canAccess;
       }
 
-      return false;
+      // Fallback logic if API is not available
+      console.warn(`Feature access API not available for ${feature}, using fallback logic`);
+      return user.status === 'verified';
     } catch (err) {
       console.error(`Error checking access for feature ${feature}:`, err);
-      return false;
+      // Fallback to user status
+      return user.status === 'verified';
     }
   }, [user]);
 
@@ -128,10 +174,23 @@ export function useNurseAccessStatus() {
         return result.data.statusMessage;
       }
 
-      return 'Unable to fetch status message';
+      // Fallback message based on user status
+      console.warn('Status message API not available, using fallback logic');
+      if (user.status === 'verified') {
+        return 'Welcome! You have full access to the platform.';
+      } else if (user.status === 'pending') {
+        return 'Please complete your profile setup to access the platform.';
+      } else {
+        return 'Please contact support for assistance with your account.';
+      }
     } catch (err) {
       console.error('Error fetching status message:', err);
-      return 'Error fetching status';
+      // Fallback message
+      if (user.status === 'verified') {
+        return 'Welcome! You have full access to the platform.';
+      } else {
+        return 'Please complete your profile setup to access the platform.';
+      }
     }
   }, [user]);
 

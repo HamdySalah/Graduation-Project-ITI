@@ -3,6 +3,8 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../lib/auth';
 import Layout from '../components/Layout';
 import Step1BasicInfo, { Step1Data } from '../components/profile-completion/Step1BasicInfo';
+import Step2VerificationDocuments, { Step2Data } from '../components/profile-completion/Step2VerificationDocuments';
+import Step3CompleteProfile, { Step3Data } from '../components/profile-completion/Step3CompleteProfile';
 import NurseProtectedRoute from '../components/NurseProtectedRoute';
 
 interface ProfileCompletionStatus {
@@ -15,71 +17,254 @@ interface ProfileCompletionStatus {
 
 interface ProfileCompletionData {
   step1?: Step1Data;
-  step2?: any;
-  step3?: any;
+  step2?: Step2Data;
+  step3?: Step3Data;
 }
 
 export default function NurseProfileCompletion() {
   const { user } = useAuth();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(true); // separate loading for status
+  const [stepLoading, setStepLoading] = useState(false);    // separate loading for step data
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [profileStatus, setProfileStatus] = useState<ProfileCompletionStatus | null>(null);
   const [formData, setFormData] = useState<ProfileCompletionData>({});
 
-  // Check if user is nurse and redirect if not
+  // Fetch profile status only once when user is available
   useEffect(() => {
     if (!user) return;
-
-    if (user.role !== 'nurse') {
-      router.replace('/dashboard');
-      return;
-    }
-
-    // If user is already verified, redirect to dashboard
-    if (user.status === 'verified') {
-      router.replace('/dashboard');
-      return;
-    }
-
-    // For now, just set initial status - we'll implement API calls later
-    setProfileStatus({
-      status: 'not_started',
-      step1Completed: false,
-      step2Completed: false,
-      step3Completed: false,
-    });
+    let cancelled = false;
+    const fetchStatus = async () => {
+      try {
+        if (user.role !== 'nurse' || user.status === 'verified') {
+          router.replace('/dashboard');
+          return;
+        }
+        setStatusLoading(true);
+        const token = localStorage.getItem('token');
+        const statusResponse = await fetch('/api/nurse-profile/status', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (!statusResponse.ok) {
+          const text = await statusResponse.text();
+          // eslint-disable-next-line no-console
+          console.error('Profile status fetch failed:', statusResponse.status, text);
+          throw new Error('Failed to fetch profile status');
+        }
+        const { data: status } = await statusResponse.json();
+        if (cancelled) return;
+        setProfileStatus(status);
+        // Set initial step
+        if (!status.step1Completed) setCurrentStep(1);
+        else if (!status.step2Completed) setCurrentStep(2);
+        else if (!status.step3Completed) setCurrentStep(3);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to load profile data';
+        setError(message);
+      } finally {
+        setStatusLoading(false);
+      }
+    };
+    fetchStatus();
+    return () => { cancelled = true; };
   }, [user, router]);
+
+  // Fetch step data when currentStep or profileStatus changes
+  useEffect(() => {
+    if (!profileStatus || !user) return;
+    let cancelled = false;
+    const fetchStepData = async () => {
+      try {
+        setStepLoading(true);
+        const token = localStorage.getItem('token');
+        const stepResponse = await fetch(`/api/nurse-profile/step/${currentStep}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (stepResponse.ok) {
+          const { data: stepData } = await stepResponse.json();
+          if (cancelled) return;
+          setFormData((prev) => {
+            const key = `step${currentStep}` as keyof ProfileCompletionData;
+            return { ...prev, [key]: stepData };
+          });
+        }
+      } catch (error) {
+        // Ignore step data error for now
+      } finally {
+        setStepLoading(false);
+      }
+    };
+    fetchStepData();
+    return () => { cancelled = true; };
+  }, [currentStep, profileStatus, user]);
 
   const handleStep1Submit = async (data: Step1Data) => {
     try {
-      setLoading(true);
+      setStepLoading(true);
       setError('');
       setSuccess('');
 
-      // For now, just simulate API call and move to next step
-      // TODO: Implement actual API call to save step 1 data
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/nurse-profile/step1', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save step 1 data');
+      }
+
       setFormData(prev => ({ ...prev, step1: data }));
       setCurrentStep(2);
       setSuccess('Step 1 completed successfully!');
-
-      // Update profile status
       setProfileStatus(prev => prev ? { ...prev, step1Completed: true } : null);
-    } catch (err: any) {
-      setError('Failed to save step 1');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to save step 1';
+      setError(message);
     } finally {
-      setLoading(false);
+      setStepLoading(false);
     }
   };
 
-  // Loading state
-  if (!user || !profileStatus) {
+  const handleStep2Submit = async (data: Step2Data) => {
+    try {
+      setStepLoading(true);
+      setError('');
+      setSuccess('');
+
+      const formDataToSend = new FormData();
+      formDataToSend.append('licenseNumber', data.licenseNumber);
+      formDataToSend.append('licenseExpirationDate', data.licenseExpirationDate);
+
+      if (data.licenseDocument) {
+        formDataToSend.append('licenseDocument', data.licenseDocument);
+      }
+      if (data.backgroundCheckDocument) {
+        formDataToSend.append('backgroundCheckDocument', data.backgroundCheckDocument);
+      }
+      if (data.resumeDocument) {
+        formDataToSend.append('resumeDocument', data.resumeDocument);
+      }
+
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/nurse-profile/step2', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formDataToSend,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save step 2 data');
+      }
+
+      setFormData(prev => ({ ...prev, step2: data }));
+      setCurrentStep(3);
+      setSuccess('Step 2 completed successfully!');
+      setProfileStatus(prev => prev ? { ...prev, step2Completed: true } : null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to save step 2';
+      setError(message);
+    } finally {
+      setStepLoading(false);
+    }
+  };
+
+  const handleStep3Submit = async (data: Step3Data) => {
+    try {
+      setStepLoading(true);
+      setError('');
+      setSuccess('');
+
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/nurse-profile/step3', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save step 3 data');
+      }
+
+      setFormData(prev => ({ ...prev, step3: data }));
+
+      // Submit the entire profile
+      const submitResponse = await fetch('/api/nurse-profile/submit', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!submitResponse.ok) {
+        throw new Error('Failed to submit profile');
+      }
+
+      setSuccess('Profile completed successfully! Redirecting to verification pending...');
+      setProfileStatus(prev => prev ? {
+        ...prev,
+        step3Completed: true,
+        status: 'submitted',
+        submittedAt: new Date().toISOString()
+      } : null);
+
+      // Redirect to verification pending page after a short delay
+      setTimeout(() => {
+        router.push('/verification-pending');
+      }, 2000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to submit profile';
+      setError(message);
+    } finally {
+      setStepLoading(false);
+    }
+  };
+
+  const handleBackToStep = (step: number) => {
+    setCurrentStep(step);
+    setError('');
+    setSuccess('');
+  };
+
+  // Loading state (only for status)
+  if (statusLoading) {
     return (
       <Layout>
         <div className="flex items-center justify-center min-h-screen">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="bg-red-100 text-red-700 p-6 rounded-lg shadow">{error}</div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Fallback if profileStatus is null (should not happen)
+  if (!profileStatus) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="bg-gray-100 text-gray-700 p-6 rounded-lg shadow">Unable to load profile status.</div>
         </div>
       </Layout>
     );
@@ -136,50 +321,33 @@ export default function NurseProfileCompletion() {
 
             {/* Step Content */}
             <div className="bg-white rounded-lg shadow-sm">
-              {currentStep === 1 && (
+              {currentStep === 1 && profileStatus && (
                 <div className="p-8">
                   <Step1BasicInfo
                     onNext={handleStep1Submit}
                     initialData={formData.step1}
-                    loading={loading}
+                    loading={stepLoading}
                   />
                 </div>
               )}
-
-              {currentStep === 2 && (
+              {currentStep === 2 && profileStatus && (
                 <div className="p-8">
-                  <div className="text-center mb-8">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Verification Documents</h2>
-                    <p className="text-gray-600">Please upload the required documents to complete your profile verification.</p>
-                  </div>
-                  <div className="text-center py-8">
-                    <p className="text-gray-500 mb-4">Step 2 component coming soon...</p>
-                    <button
-                      onClick={() => setCurrentStep(3)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md"
-                    >
-                      Continue to Step 3 (Temporary)
-                    </button>
-                  </div>
+                  <Step2VerificationDocuments
+                    onNext={handleStep2Submit}
+                    onBack={() => handleBackToStep(1)}
+                    initialData={formData.step2}
+                    loading={stepLoading}
+                  />
                 </div>
               )}
-
-              {currentStep === 3 && (
+              {currentStep === 3 && profileStatus && (
                 <div className="p-8">
-                  <div className="text-center mb-8">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Complete Your Profile</h2>
-                    <p className="text-gray-600">Provide additional information about your qualifications and experience.</p>
-                  </div>
-                  <div className="text-center py-8">
-                    <p className="text-gray-500 mb-4">Step 3 component coming soon...</p>
-                    <button
-                      onClick={() => router.push('/verification-pending')}
-                      className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md"
-                      disabled={loading}
-                    >
-                      {loading ? 'Submitting...' : 'Submit Profile (Temporary)'}
-                    </button>
-                  </div>
+                  <Step3CompleteProfile
+                    onNext={handleStep3Submit}
+                    onBack={() => handleBackToStep(2)}
+                    initialData={formData.step3}
+                    loading={stepLoading}
+                  />
                 </div>
               )}
             </div>
