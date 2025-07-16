@@ -23,8 +23,11 @@ export class NurseProfileCompletionService {
   // Get current profile completion status
   async getProfileStatus(userId: string): Promise<ProfileCompletionStatusDto> {
     const user = await this.userModel.findById(userId);
-    if (!user || user.role !== 'nurse') {
-      throw new BadRequestException('User is not a nurse');
+    if (!user) {
+      throw new BadRequestException(`User not found with ID: ${userId}`);
+    }
+    if (user.role !== 'nurse') {
+      throw new BadRequestException(`User is not a nurse. Current role: ${user.role}, User ID: ${userId}, Email: ${user.email}`);
     }
 
     let nurseProfile = await this.nurseProfileModel.findOne({ userId });
@@ -52,8 +55,11 @@ export class NurseProfileCompletionService {
   // Step 1: Save basic information
   async saveStep1(userId: string, data: Step1BasicInfoDto): Promise<void> {
     const user = await this.userModel.findById(userId);
-    if (!user || user.role !== 'nurse') {
-      throw new BadRequestException('User is not a nurse');
+    if (!user) {
+      throw new BadRequestException(`User not found with ID: ${userId}`);
+    }
+    if (user.role !== 'nurse') {
+      throw new BadRequestException(`User is not a nurse. Current role: ${user.role}, User ID: ${userId}, Email: ${user.email}`);
     }
 
     // Update user's basic information
