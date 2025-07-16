@@ -3,7 +3,9 @@
   "version": "0.0.1",
   "private": true,
   "dependencies": {
+    "@chatscope/chat-ui-kit-react": "^2.1.1",
     "framer-motion": "^12.23.3",
+    "isomorphic-fetch": "^3.0.0",
     "next": "~15.2.4",
     "react": "19.0.0",
     "react-dom": "19.0.0"
@@ -12,5 +14,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start"
+  },
+  "devDependencies": {
+    "@types/isomorphic-fetch": "^0.0.39"
   }
 }

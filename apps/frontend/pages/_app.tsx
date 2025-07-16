@@ -2,6 +2,12 @@ import '../styles/globals.css';
 import type { AppProps } from 'next/app';
 import { AuthProvider } from '../lib/auth';
 import { useEffect } from 'react';
+import dynamic from 'next/dynamic';
+
+// Import ChatWidget with dynamic loading (no SSR) to avoid hydration issues
+const ChatWidget = dynamic(() => import('../components/ChatWidget'), { 
+  ssr: false 
+});
 
 function MyApp({ Component, pageProps }: AppProps) {
   // Global error handling
@@ -30,6 +36,8 @@ function MyApp({ Component, pageProps }: AppProps) {
   return (
     <AuthProvider>
       <Component {...pageProps} />
+      {/* AI Chat Widget - appears on all pages */}
+      {typeof window !== 'undefined' && <ChatWidget />}
     </AuthProvider>
   );
 }
