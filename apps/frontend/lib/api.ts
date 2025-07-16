@@ -1,6 +1,9 @@
 // API service layer for handling all backend requests
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
+// Import fetch for Node.js environments
+import fetch from 'isomorphic-fetch';
+
 // Remove unused interface for now
 
 class ApiService {
