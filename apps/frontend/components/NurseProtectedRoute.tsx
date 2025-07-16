@@ -75,8 +75,8 @@ export default function NurseProtectedRoute({
 
   // Handle different access scenarios based on new status system
   if (requireVerified && user.status !== 'verified') {
-    // Profile completion required
-    if (needsProfileCompletion) {
+    // Profile completion required - but allow access to the profile completion page itself
+    if (needsProfileCompletion && router.pathname !== '/nurse-profile-complete') {
       const completionStatus = getCompletionStatus();
 
       return (
