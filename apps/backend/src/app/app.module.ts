@@ -11,6 +11,8 @@ import { AdminModule } from '../admin/admin.module';
 import { DashboardModule } from '../dashboard/dashboard.module';
 import { UserManagementModule } from '../user-management/user-management.module';
 import { ReviewsModule } from '../reviews/reviews.module';
+import { NurseProfileStatusModule } from '../nurse-profile-status/nurse-profile-status.module';
+// import { MiddlewareModule } from '../middleware/middleware.module'; // Temporarily disabled for testing
 // import { EmailModule } from '../email/email.module'; // Temporarily disabled due to build issues
 import { configValidationSchema } from '../config/config.validation';
 import { GlobalExceptionFilter } from '../common/filters/global-exception.filter';
@@ -42,6 +44,8 @@ import { ResponseInterceptor } from '../common/interceptors/response.interceptor
     DashboardModule,
     UserManagementModule,
     ReviewsModule,
+    NurseProfileStatusModule,
+    // MiddlewareModule, // Temporarily disabled for testing
     // EmailModule, // Temporarily disabled due to build issues
   ],
   controllers: [AppController],
