@@ -30,12 +30,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload): Promise<any> {
+    console.log('🔍 JWT Strategy validate called with payload:', payload);
     const { sub } = payload;
+    console.log('🔍 Extracted sub (user ID):', sub);
 
     const user = await this.userModel.findById(sub).exec();
     if (!user) {
+      console.error('❌ User not found in database with ID:', sub);
       throw new UnauthorizedException('User not found');
     }
+
+    console.log('✅ User found in database:', user.email, 'Role:', user.role);
 
     // Check if user is still active/verified for sensitive operations
     if (user.status === 'rejected') {
@@ -43,11 +48,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     // Always return a plain object with all required fields for downstream guards/controllers
-    return {
+    const result = {
       id: String(user._id),
       role: user.role,
       email: user.email,
       status: user.status,
     };
+
+    console.log('🎯 JWT Strategy returning user object:', result);
+    return result;
   }
 }

@@ -21,7 +21,6 @@
         }
       },
       "serve": {
-        "continuous": true,
         "executor": "@nx/js:node",
         "defaultConfiguration": "development",
         "dependsOn": [
@@ -29,14 +28,21 @@
         ],
         "options": {
           "buildTarget": "@nurse-platform/backend:build",
-          "runBuildTargetDependencies": false
+          "runBuildTargetDependencies": false,
+          "main": "dist/main.js",
+          "watch": true,
+          "inspect": true
         },
         "configurations": {
           "development": {
-            "buildTarget": "@nurse-platform/backend:build:development"
+            "buildTarget": "@nurse-platform/backend:build:development",
+            "main": "dist/main.js",
+            "watch": true
           },
           "production": {
-            "buildTarget": "@nurse-platform/backend:build:production"
+            "buildTarget": "@nurse-platform/backend:build:production",
+            "main": "dist/main.js",
+            "watch": false
           }
         }
       }

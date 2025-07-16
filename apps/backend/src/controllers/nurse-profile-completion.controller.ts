@@ -43,7 +43,7 @@ export class NurseProfileCompletionController {
     message: string;
     data: ProfileCompletionStatusDto;
   }> {
-    const userId = req.user.sub;
+    const userId = req.user.id;
     const status = await this.profileCompletionService.getProfileStatus(userId);
     
     return {
@@ -69,7 +69,7 @@ export class NurseProfileCompletionController {
     message: string;
     data: any;
   }> {
-    const userId = req.user.sub;
+    const userId = req.user.id;
     const step = parseInt(stepNumber);
     
     if (step < 1 || step > 3) {
@@ -106,7 +106,7 @@ export class NurseProfileCompletionController {
     statusCode: number;
     message: string;
   }> {
-    const userId = req.user.sub;
+    const userId = req.user.id;
     
     if (req.user.role !== 'nurse') {
       throw new ForbiddenException('Only nurses can complete profile');
@@ -135,7 +135,7 @@ export class NurseProfileCompletionController {
     statusCode: number;
     message: string;
   }> {
-    const userId = req.user.sub;
+    const userId = req.user.id;
     
     if (req.user.role !== 'nurse') {
       throw new ForbiddenException('Only nurses can complete profile');
@@ -170,7 +170,7 @@ export class NurseProfileCompletionController {
     statusCode: number;
     message: string;
   }> {
-    const userId = req.user.sub;
+    const userId = req.user.id;
     
     if (req.user.role !== 'nurse') {
       throw new ForbiddenException('Only nurses can complete profile');
@@ -202,7 +202,7 @@ export class NurseProfileCompletionController {
     statusCode: number;
     message: string;
   }> {
-    const userId = req.user.sub;
+    const userId = req.user.id;
     
     if (req.user.role !== 'nurse') {
       throw new ForbiddenException('Only nurses can submit profile');
@@ -232,7 +232,7 @@ export class NurseProfileCompletionController {
     message: string;
     data: { canAccess: boolean };
   }> {
-    const userId = req.user.sub;
+    const userId = req.user.id;
     const step = parseInt(stepNumber);
     
     if (step < 1 || step > 3) {

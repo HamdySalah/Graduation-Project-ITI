@@ -31,7 +31,7 @@ export class NurseProfileStatusController {
     message: string;
     data: NurseAccessStatus;
   }> {
-    const userId = req.user.sub;
+    const userId = req.user.id;
     
     if (req.user.role !== 'nurse') {
       throw new ForbiddenException('Only nurses can check access status');
@@ -63,7 +63,7 @@ export class NurseProfileStatusController {
       statusMessage: string;
     };
   }> {
-    const userId = req.user.sub;
+    const userId = req.user.id;
     
     if (req.user.role !== 'nurse') {
       throw new ForbiddenException('Only nurses can check profile steps');
@@ -102,7 +102,7 @@ export class NurseProfileStatusController {
     message: string;
     data: { canAccess: boolean; feature: string };
   }> {
-    const userId = req.user.sub;
+    const userId = req.user.id;
     const feature = params.feature;
     
     if (req.user.role !== 'nurse') {
@@ -131,7 +131,7 @@ export class NurseProfileStatusController {
     message: string;
     data: { percentage: number; isComplete: boolean };
   }> {
-    const userId = req.user.sub;
+    const userId = req.user.id;
     
     if (req.user.role !== 'nurse') {
       throw new ForbiddenException('Only nurses can check completion percentage');
@@ -162,7 +162,7 @@ export class NurseProfileStatusController {
     message: string;
     data: { statusMessage: string };
   }> {
-    const userId = req.user.sub;
+    const userId = req.user.id;
     
     if (req.user.role !== 'nurse') {
       throw new ForbiddenException('Only nurses can check status message');

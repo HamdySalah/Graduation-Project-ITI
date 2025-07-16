@@ -8,7 +8,7 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { User, UserSchema } from '../schemas/user.schema';
 import { NurseProfile, NurseProfileSchema } from '../schemas/nurse-profile.schema';
-import { EmailModule } from '../email/email.module';
+// import { EmailModule } from '../email/email.module'; // Temporarily disabled
 
 @Module({
   imports: [
@@ -29,7 +29,7 @@ import { EmailModule } from '../email/email.module';
       { name: User.name, schema: UserSchema },
       { name: NurseProfile.name, schema: NurseProfileSchema },
     ]),
-    EmailModule,
+    // EmailModule, // Temporarily disabled
   ],
   providers: [AuthService, JwtStrategy],
   controllers: [AuthController],

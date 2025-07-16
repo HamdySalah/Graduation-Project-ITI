@@ -215,6 +215,8 @@ export default function NurseProfileCompletion() {
           throw new Error('Authentication failed. Please log in again.');
         } else if (response.status === 403) {
           throw new Error('Access denied. Only nurses can complete profiles.');
+        } else if (response.status === 400 && errorText.includes('User is not a nurse')) {
+          throw new Error('Authentication issue: Your account role is not recognized. Please log out and log in again.');
         } else if (response.status >= 500) {
           throw new Error('Server error. Please try again later.');
         } else {
@@ -233,21 +235,35 @@ export default function NurseProfileCompletion() {
       const message = error instanceof Error ? error.message : 'Failed to save step 1';
       console.error('Step 1 submit error:', error);
 
-      // Provide fallback option to continue locally
-      setError(`${message}\n\nWould you like to continue with local storage? Your data will be saved locally and you can submit it later when the server is available.`);
+      // Handle authentication errors specifically
+      if (message.includes('Authentication') || message.includes('User is not a nurse')) {
+        setError(`${message}\n\nThis usually means you need to log in again with fresh credentials.`);
 
-      // Add a fallback button to continue locally
-      setTimeout(() => {
-        if (window.confirm('Backend server is not available. Would you like to continue with local storage? Your data will be saved locally.')) {
-          // Save to local storage as fallback
-          localStorage.setItem('nurse-profile-step1', JSON.stringify(data));
-          setFormData(prev => ({ ...prev, step1: data }));
-          setCurrentStep(2);
-          setSuccess('Step 1 saved locally! You can submit to server later.');
-          setProfileStatus(prev => prev ? { ...prev, step1Completed: true } : null);
-          setError('');
-        }
-      }, 1000);
+        setTimeout(() => {
+          if (window.confirm('Authentication issue detected. Would you like to log out and log in again to refresh your session?')) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login';
+            return;
+          }
+        }, 1000);
+      } else {
+        // Provide fallback option to continue locally for other errors
+        setError(`${message}\n\nWould you like to continue with local storage? Your data will be saved locally and you can submit it later when the server is available.`);
+
+        // Add a fallback button to continue locally
+        setTimeout(() => {
+          if (window.confirm('Backend server is not available. Would you like to continue with local storage? Your data will be saved locally.')) {
+            // Save to local storage as fallback
+            localStorage.setItem('nurse-profile-step1', JSON.stringify(data));
+            setFormData(prev => ({ ...prev, step1: data }));
+            setCurrentStep(2);
+            setSuccess('Step 1 saved locally! You can submit to server later.');
+            setProfileStatus(prev => prev ? { ...prev, step1Completed: true } : null);
+            setError('');
+          }
+        }, 1000);
+      }
     } finally {
       setStepLoading(false);
     }
