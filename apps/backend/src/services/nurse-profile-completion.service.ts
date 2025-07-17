@@ -55,11 +55,8 @@ export class NurseProfileCompletionService {
   // Step 1: Save basic information
   async saveStep1(userId: string, data: Step1BasicInfoDto): Promise<void> {
     const user = await this.userModel.findById(userId);
-    if (!user) {
-      throw new BadRequestException(`User not found with ID: ${userId}`);
-    }
-    if (user.role !== 'nurse') {
-      throw new BadRequestException(`User is not a nurse. Current role: ${user.role}, User ID: ${userId}, Email: ${user.email}`);
+    if (!user || user.role !== 'nurse') {
+      throw new BadRequestException('User is not a nurse');
     }
 
     // Update user's basic information
@@ -68,7 +65,7 @@ export class NurseProfileCompletionService {
       email: data.emailAddress,
     });
 
-    // Update or create nurse profile
+    // Update or create nurse profile (upsert)
     await this.nurseProfileModel.findOneAndUpdate(
       { userId },
       {
@@ -85,15 +82,7 @@ export class NurseProfileCompletionService {
 
   // Step 2: Save verification documents
   async saveStep2(userId: string, data: Step2VerificationDto): Promise<void> {
-    const nurseProfile = await this.nurseProfileModel.findOne({ userId });
-    if (!nurseProfile) {
-      throw new NotFoundException('Nurse profile not found');
-    }
-
-    if (!nurseProfile.step1Completed) {
-      throw new BadRequestException('Step 1 must be completed first');
-    }
-
+    // Use upsert so nurse profile is created if missing
     await this.nurseProfileModel.findOneAndUpdate(
       { userId },
       {
@@ -106,7 +95,8 @@ export class NurseProfileCompletionService {
         step2CompletedAt: new Date(),
         completionStatus: ProfileCompletionStatus.STEP_2_COMPLETED,
         lastUpdated: new Date(),
-      }
+      },
+      { upsert: true, new: true }
     );
   }
 
