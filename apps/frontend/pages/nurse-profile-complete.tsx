@@ -301,7 +301,14 @@ export default function NurseProfileCompletion() {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Step 2 save failed:', response.status, errorText);
-        throw new Error(`Failed to save step 2 data: ${response.status}`);
+        let errorMessage = `Failed to save step 2 data: ${response.status}`;
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage += ` - ${errorData.message || errorText}`;
+        } catch {
+          errorMessage += ` - ${errorText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       setFormData(prev => ({ ...prev, step2: data }));
