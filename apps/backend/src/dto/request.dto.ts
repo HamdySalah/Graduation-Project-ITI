@@ -202,12 +202,18 @@ export class GetNearbyNursesDto {
   radius?: number; // in kilometers, default 10km
 
   @ApiPropertyOptional({
-    description: 'Filter nurses by specializations',
+    description: 'Filter nurses by specializations (comma-separated or array)',
     enum: SpecializationType,
     isArray: true,
     example: [SpecializationType.GENERAL, SpecializationType.PEDIATRIC],
   })
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return value.split(',').map(s => s.trim()).filter(s => s);
+    }
+    return value;
+  })
   @IsArray()
   @IsEnum(SpecializationType, { each: true, message: 'Invalid specialization type' })
   specializations?: SpecializationType[];
