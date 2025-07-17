@@ -2,6 +2,7 @@
   "name": "@nurse-platform/backend",
   "version": "0.0.1",
   "private": true,
+  "main": "dist/main.js",
   "nx": {
     "targets": {
       "build": {
@@ -29,19 +30,16 @@
         "options": {
           "buildTarget": "@nurse-platform/backend:build",
           "runBuildTargetDependencies": false,
-          "main": "dist/main.js",
           "watch": true,
           "inspect": true
         },
         "configurations": {
           "development": {
             "buildTarget": "@nurse-platform/backend:build:development",
-            "main": "dist/main.js",
             "watch": true
           },
           "production": {
             "buildTarget": "@nurse-platform/backend:build:production",
-            "main": "dist/main.js",
             "watch": false
           }
         }
@@ -53,6 +51,6 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "joi": "^17.13.3",
-    "openai": "^5.9.2"
+    "openai": "^5.10.1"
   }
 }
