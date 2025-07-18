@@ -8,9 +8,12 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app/app.module';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
+import { existsSync, mkdirSync } from 'fs';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'],
   });
 
@@ -26,6 +29,40 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
+
+  // Setup uploads directory and static file serving
+  const uploadsPath = join(process.cwd(), 'uploads');
+  if (!existsSync(uploadsPath)) {
+    mkdirSync(uploadsPath, { recursive: true });
+    Logger.log('📁 Created uploads directory');
+  }
+
+  // Create subdirectories for different file types
+  const subdirs = ['profiles', 'nurse-documents', 'request-attachments'];
+  subdirs.forEach(subdir => {
+    const subdirPath = join(uploadsPath, subdir);
+    if (!existsSync(subdirPath)) {
+      mkdirSync(subdirPath, { recursive: true });
+      Logger.log(`📁 Created uploads/${subdir} directory`);
+    }
+  });
+
+  // Serve static files from uploads directory
+  app.useStaticAssets(uploadsPath, {
+    prefix: '/uploads/',
+    setHeaders: (res, path) => {
+      // Set appropriate headers for different file types
+      if (path.endsWith('.pdf')) {
+        res.setHeader('Content-Type', 'application/pdf');
+      } else if (path.match(/\.(jpg|jpeg|png|gif)$/)) {
+        res.setHeader('Content-Type', 'image/' + path.split('.').pop());
+      }
+      // Allow files to be displayed inline in browser
+      res.setHeader('Content-Disposition', 'inline');
+    }
+  });
+
+  Logger.log(`📁 Static files served from: ${uploadsPath}`);
 
   // Enable global validation with detailed error messages
   app.useGlobalPipes(

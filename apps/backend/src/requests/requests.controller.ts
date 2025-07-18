@@ -11,12 +11,20 @@ export class RequestsController {
 
   @Post()
   async createRequest(@Body(ValidationPipe) createRequestDto: CreateRequestDto, @Request() req : any) {
+    console.log('🔍 Controller createRequest called');
+    console.log('🔍 req.user:', req.user);
+    console.log('🔍 createRequestDto:', createRequestDto);
     return this.requestsService.createRequest(createRequestDto, req.user);
   }
 
   @Get()
   async getRequests(@Request() req : any, @Query('status') status?: RequestStatus) {
     return this.requestsService.getRequests(req.user, status);
+  }
+
+  @Get(':id')
+  async getRequestById(@Param('id') id: string, @Request() req: any) {
+    return this.requestsService.getRequestById(id, req.user);
   }
 
   @Get('dashboard/stats')
