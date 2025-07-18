@@ -123,27 +123,46 @@ export class NursesService {
     const nurseIds = pendingNurses.map(nurse => nurse._id);
     const nurseProfiles = await this.nurseProfileModel
       .find({ userId: { $in: nurseIds } })
-      .populate('userId', '-password')
       .exec();
 
-    const result = nurseProfiles.map(profile => ({
-      id: profile.userId._id,
-      name: (profile.userId as any).name,
-      email: (profile.userId as any).email,
-      phone: (profile.userId as any).phone,
-      location: (profile.userId as any).location,
-      address: (profile.userId as any).address,
-      createdAt: (profile.userId as any).createdAt,
-      licenseNumber: profile.licenseNumber,
-      yearsOfExperience: profile.yearsOfExperience,
-      specializations: profile.specializations,
-      education: profile.education,
-      certifications: profile.certifications,
-      documents: profile.documents,
-      hourlyRate: profile.hourlyRate,
-      bio: profile.bio,
-      languages: profile.languages,
-    }));
+    // Create a map of profiles by userId for easier lookup
+    const profileMap = new Map();
+    nurseProfiles.forEach(profile => {
+      profileMap.set(profile.userId.toString(), profile);
+    });
+
+    const result = pendingNurses.map(nurse => {
+      const profile = profileMap.get(nurse._id.toString());
+
+      return {
+        id: nurse._id.toString(),
+        name: nurse.name,
+        email: nurse.email,
+        phone: nurse.phone,
+        location: nurse.location,
+        address: nurse.address,
+        status: nurse.status,
+        createdAt: nurse.createdAt,
+
+        // Profile data (if exists)
+        ...(profile && {
+          licenseNumber: profile.licenseNumber,
+          yearsOfExperience: profile.yearsOfExperience,
+          specializations: profile.specializations,
+          education: profile.education,
+          certifications: profile.certifications,
+          documents: profile.documents,
+          hourlyRate: profile.hourlyRate,
+          bio: profile.bio,
+          languages: profile.languages,
+          completionStatus: profile.completionStatus,
+          step1Completed: profile.step1Completed,
+          step2Completed: profile.step2Completed,
+          step3Completed: profile.step3Completed,
+          submittedAt: profile.submittedAt,
+        }),
+      };
+    });
 
     return result;
   }

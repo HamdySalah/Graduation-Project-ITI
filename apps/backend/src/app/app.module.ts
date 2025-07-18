@@ -18,6 +18,7 @@ import { configValidationSchema } from '../config/config.validation';
 import { GlobalExceptionFilter } from '../common/filters/global-exception.filter';
 import { ResponseInterceptor } from '../common/interceptors/response.interceptor';
 import { AiChatModule } from '../ai-chat/ai-chat.module';
+import { UploadsModule } from '../uploads/uploads.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { AiChatModule } from '../ai-chat/ai-chat.module';
     ReviewsModule,
     NurseProfileStatusModule,
     MiddlewareModule,
+    UploadsModule,
     // EmailModule, // Temporarily disabled due to build issues
     AiChatModule,
   ],

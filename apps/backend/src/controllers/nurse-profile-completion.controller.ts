@@ -204,7 +204,7 @@ export class NurseProfileCompletionController {
         fileMap.licenseDocument = {
           fileName: file.filename,
           originalName: file.originalname,
-          fileUrl: `/api/uploads/nurse-documents/${file.filename}`,
+          fileUrl: `/uploads/nurse-documents/${file.filename}`,
           fileType: file.mimetype,
           fileSize: file.size,
         };
@@ -216,7 +216,7 @@ export class NurseProfileCompletionController {
         fileMap.backgroundCheckDocument = {
           fileName: file.filename,
           originalName: file.originalname,
-          fileUrl: `/api/uploads/nurse-documents/${file.filename}`,
+          fileUrl: `/uploads/nurse-documents/${file.filename}`,
           fileType: file.mimetype,
           fileSize: file.size,
         };
@@ -228,7 +228,7 @@ export class NurseProfileCompletionController {
         fileMap.resumeDocument = {
           fileName: file.filename,
           originalName: file.originalname,
-          fileUrl: `/api/uploads/nurse-documents/${file.filename}`,
+          fileUrl: `/uploads/nurse-documents/${file.filename}`,
           fileType: file.mimetype,
           fileSize: file.size,
         };
