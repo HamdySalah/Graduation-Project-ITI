@@ -7,40 +7,27 @@ import { motion } from 'framer-motion';
 
 export default function VerificationPending() {
   const { user } = useAuth();
-  const {
-    accessStatus,
-    isUnderReview,
-    needsProfileCompletion,
-    getCompletionStatus,
-    refreshStatus
-  } = useNurseAccessStatus();
   const router = useRouter();
   const [statusMessage, setStatusMessage] = useState('');
+  const { needsProfileCompletion, getCompletionStatus, refreshStatus } = useNurseAccessStatus();
 
   useEffect(() => {
     if (!user) {
       router.replace('/login');
       return;
     }
-
     if (user.role !== 'nurse') {
       router.replace('/dashboard');
       return;
     }
-
-    // If user is verified, redirect to dashboard
     if (user.status === 'verified') {
       router.replace('/dashboard');
       return;
     }
-
-    // If profile completion is needed, redirect to profile completion
     if (needsProfileCompletion) {
       router.replace('/nurse-profile-complete');
       return;
     }
-
-    // Load status message
     loadStatusMessage();
   }, [user, router, needsProfileCompletion]);
 
@@ -48,14 +35,12 @@ export default function VerificationPending() {
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
-
       const response = await fetch('/api/nurse-profile-status/status-message', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
-
       if (response.ok) {
         const result = await response.json();
         setStatusMessage(result.data.statusMessage);
@@ -68,8 +53,6 @@ export default function VerificationPending() {
   const handleRefreshStatus = () => {
     refreshStatus();
     loadStatusMessage();
-
-    // Check if status changed after refresh
     setTimeout(() => {
       if (user?.status === 'verified') {
         router.replace('/dashboard');
@@ -96,6 +79,12 @@ export default function VerificationPending() {
           className="max-w-lg mx-auto"
         >
           <div className="bg-white rounded-2xl shadow-xl p-8 text-center border border-yellow-200">
+            {/* Branding Section */}
+            <div className="flex items-center justify-center mb-8">
+              <img src="/logo.png" alt="Nurse Platform Logo" className="h-20 w-20 object-contain drop-shadow-2xl animate-bounce" />
+              <span className="ml-4 text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-700 via-purple-600 to-blue-400 tracking-wide">عناية</span>
+            </div>
+
             {/* Animated Icon */}
             <motion.div
               animate={{

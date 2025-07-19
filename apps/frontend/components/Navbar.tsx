@@ -26,11 +26,12 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-gradient-to-r from-blue-600 to-purple-600 shadow-lg sticky top-0 z-50">
+    <nav className="bg-gradient-to-r from-blue-700 to-purple-700 shadow-lg sticky top-0 z-50">
       <div className="container mx-auto flex justify-between items-center py-4 px-6">
         {/* Logo/Brand */}
-        <div className="text-3xl font-extrabold text-white animate-pulse">
-          <span className="text-yellow-300">Nurse</span><span className="text-white">Connect</span>
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="Nurse Platform Logo" className="h-10 w-10 object-contain drop-shadow-xl animate-bounce" />
+          <span className="ml-2 text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-700 via-purple-600 to-blue-400 tracking-wide">عناية</span>
         </div>
 
         {/* Navigation Links */}
