@@ -83,6 +83,13 @@ export default function Layout({ children, title }: LayoutProps) {
                         </button>
 
                         <button
+                          onClick={() => handleNavigation('/settings')}
+                          className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                        >
+                          Settings
+                        </button>
+
+                        <button
                           onClick={() => handleNavigation('/dashboard')}
                           className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
                         >
@@ -115,12 +122,20 @@ export default function Layout({ children, title }: LayoutProps) {
                         )}
 
                         {user.role === 'nurse' && canViewRequests && (
-                          <button
-                            onClick={() => navigateAndClose('/requests', () => setIsDropdownOpen(false))}
-                            className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
-                          >
-                            My Requests
-                          </button>
+                          <>
+                            <button
+                              onClick={() => navigateAndClose('/requests', () => setIsDropdownOpen(false))}
+                              className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                            >
+                              Patient Requests
+                            </button>
+                            <button
+                              onClick={() => navigateAndClose('/visit-history', () => setIsDropdownOpen(false))}
+                              className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                            >
+                              Visit History
+                            </button>
+                          </>
                         )}
 
                         {user.role === 'nurse' && !canAccessPlatform && (

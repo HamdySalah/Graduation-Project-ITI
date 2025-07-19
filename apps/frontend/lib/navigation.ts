@@ -184,6 +184,20 @@ export const navigationUtils = {
   },
 
   /**
+   * Navigate to visit history
+   */
+  async goToVisitHistory() {
+    return this.navigateTo('/visit-history');
+  },
+
+  /**
+   * Navigate to settings
+   */
+  async goToSettings() {
+    return this.navigateTo('/settings');
+  },
+
+  /**
    * Check if we're on a specific page
    */
   isOnPage(pathname: string): boolean {

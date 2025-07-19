@@ -8,8 +8,6 @@ import { motion } from 'framer-motion';
 export default function VerificationPending() {
   const { user } = useAuth();
   const {
-    accessStatus,
-    isUnderReview,
     needsProfileCompletion,
     getCompletionStatus,
     refreshStatus

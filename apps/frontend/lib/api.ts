@@ -17,6 +17,7 @@ class ApiService {
   }
 
   // Check if token is expired (basic check)
+  /*
   private isTokenExpired(): boolean {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     if (!token) return true;
@@ -31,6 +32,7 @@ class ApiService {
       return true; // Assume expired if we can't parse
     }
   }
+  */
 
   // Set token expiration reminder
   private setTokenExpirationReminder(token: string) {
