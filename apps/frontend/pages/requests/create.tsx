@@ -99,9 +99,13 @@ export default function CreateRequest() {
       console.log('✅ Request created successfully:', result);
 
       // Extract request ID from response (handle double-nested structure)
-      let requestId = result?.data?.id || result?.id || result?._id;
-      if (result?.data?.data?.id) {
-        requestId = result.data.data.id;
+      let requestId: string | undefined;
+      if (result && typeof result === 'object') {
+        const resultObj = result as any;
+        requestId = resultObj?.data?.id || resultObj?.id || resultObj?._id;
+        if (resultObj?.data?.data?.id) {
+          requestId = resultObj.data.data.id;
+        }
       }
 
       if (requestId) {

@@ -22,7 +22,6 @@ export default function NurseProtectedRoute({
     loading: statusLoading,
     getRedirectInfo,
     getCompletionStatus,
-    canAccessPlatform,
     needsProfileCompletion,
     isUnderReview,
     isRejected
