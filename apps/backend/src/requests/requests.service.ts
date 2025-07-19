@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { PatientRequest, PatientRequestDocument, RequestStatus } from '../schemas/patient-request.schema';
 import { UserDocument, UserRole } from '../schemas/user.schema';
 import { CreateRequestDto, UpdateRequestStatusDto } from '../dto/request.dto';
@@ -10,6 +10,20 @@ export class RequestsService {
   constructor(
     @InjectModel(PatientRequest.name) private requestModel: Model<PatientRequestDocument>,
   ) {}
+
+  /**
+   * Helper method to safely compare ObjectIds
+   * Handles cases where IDs might be strings or ObjectId instances
+   */
+  private compareObjectIds(id1: any, id2: any): boolean {
+    if (!id1 || !id2) return false;
+
+    // Convert both to strings for comparison
+    const str1 = id1.toString();
+    const str2 = id2.toString();
+
+    return str1 === str2;
+  }
 
   async createRequest(createRequestDto: CreateRequestDto, patientUser: UserDocument) {
     console.log('🔍 Service createRequest called with user:', patientUser);
@@ -198,8 +212,8 @@ export class RequestsService {
     // Check permissions
     const canView =
       user.role === UserRole.ADMIN ||
-      request.patientId._id.equals(user._id as any) ||
-      (request.nurseId && request.nurseId._id.equals(user._id as any));
+      this.compareObjectIds(request.patientId, user._id) ||
+      (request.nurseId && this.compareObjectIds(request.nurseId, user._id));
 
     if (!canView) {
       throw new ForbiddenException('You do not have permission to view this request');
@@ -261,7 +275,7 @@ export class RequestsService {
       request.nurseId = user._id as any;
       request.acceptedAt = new Date();
     } else if (status === RequestStatus.COMPLETED) {
-      if (user.role !== UserRole.NURSE || !request.nurseId?.equals(user._id as any)) {
+      if (user.role !== UserRole.NURSE || !this.compareObjectIds(request.nurseId, user._id)) {
         throw new ForbiddenException('Only the assigned nurse can complete requests');
       }
       if (request.status !== RequestStatus.IN_PROGRESS && request.status !== RequestStatus.ACCEPTED) {
@@ -269,13 +283,13 @@ export class RequestsService {
       }
       request.completedAt = new Date();
     } else if (status === RequestStatus.CANCELLED) {
-      if (user.role !== UserRole.PATIENT || !request.patientId.equals(user._id as any)) {
+      if (user.role !== UserRole.PATIENT || !this.compareObjectIds(request.patientId, user._id)) {
         throw new ForbiddenException('Only the patient can cancel their requests');
       }
       request.cancelledAt = new Date();
       request.cancellationReason = cancellationReason;
     } else if (status === RequestStatus.IN_PROGRESS) {
-      if (user.role !== UserRole.NURSE || !request.nurseId?.equals(user._id as any)) {
+      if (user.role !== UserRole.NURSE || !this.compareObjectIds(request.nurseId, user._id)) {
         throw new ForbiddenException('Only the assigned nurse can start requests');
       }
       if (request.status !== RequestStatus.ACCEPTED) {

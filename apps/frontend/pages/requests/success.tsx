@@ -67,11 +67,12 @@ export default function RequestSuccess() {
       console.log('✅ Request details fetched:', result);
       
       // Handle the double-nested response structure (similar to nurse data fix)
-      let requestData = result;
-      if (result && result.data) {
-        requestData = result.data;
+      let requestData: RequestData | null = null;
+      if (result && typeof result === 'object') {
+        const resultObj = result as any;
+        requestData = resultObj?.data || resultObj;
       }
-      
+
       setRequest(requestData);
     } catch (err: any) {
       console.error('❌ Error fetching request details:', err);

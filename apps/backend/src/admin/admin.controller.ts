@@ -20,7 +20,7 @@ import { NurseProfile } from '../schemas/nurse-profile.schema';
 
 @ApiTags('Admin')
 @Controller('api/admin')
-// @UseGuards(JwtAuthGuard)
+// Temporarily disable guards for debugging - will re-enable after fixing auth issues
 // @UseGuards(JwtAuthGuard, RolesGuard)
 // @Roles(UserRole.ADMIN)
 @ApiBearerAuth('JWT-auth')
@@ -481,6 +481,12 @@ export class AdminController {
       console.log('🔍 [BACKEND] Getting nurse details for ID:', nurseId);
       console.log('🔍 [BACKEND] Nurse ID type:', typeof nurseId);
       console.log('🔍 [BACKEND] Nurse ID length:', nurseId.length);
+
+      // Validate MongoDB ObjectId format
+      if (!nurseId || typeof nurseId !== 'string' || nurseId.length !== 24 || !/^[0-9a-fA-F]{24}$/.test(nurseId)) {
+        console.log('❌ [BACKEND] Invalid MongoDB ObjectId format:', nurseId);
+        throw new BadRequestException('Invalid nurse ID format');
+      }
 
       // Find the user
       console.log('🔍 [BACKEND] Searching for user in database...');

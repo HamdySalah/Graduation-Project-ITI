@@ -153,7 +153,23 @@ export default function NurseReview() {
 
     } catch (err: any) {
       console.error('Failed to load nurse data:', err);
-      setError(`Failed to load nurse data: ${err.message || 'Please try again.'}`);
+
+      // Provide more specific error messages
+      let errorMessage = 'Failed to load nurse data. ';
+
+      if (err.message?.includes('fetch')) {
+        errorMessage += 'Unable to connect to server. Please check if the backend is running.';
+      } else if (err.message?.includes('Validation failed')) {
+        errorMessage += 'Authentication required. Please make sure you are logged in as an admin.';
+      } else if (err.message?.includes('401') || err.message?.includes('Unauthorized')) {
+        errorMessage += 'You are not authorized to view this page. Please log in as an admin.';
+      } else if (err.message?.includes('404') || err.message?.includes('Not Found')) {
+        errorMessage += 'The requested nurse profile was not found.';
+      } else {
+        errorMessage += err.message || 'Please try again.';
+      }
+
+      setError(errorMessage);
     } finally {
       setLoadingNurse(false);
     }
