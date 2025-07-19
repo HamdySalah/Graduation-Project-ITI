@@ -65,6 +65,10 @@ export default function FindNurses() {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [debugInfo, setDebugInfo] = useState('Component initialized');
+  const [currentPage, setCurrentPage] = useState(1);
+  const nursesPerPage = 8;
+  const totalPages = Math.ceil(filteredNurses.length / nursesPerPage);
+  const paginatedNurses = filteredNurses.slice((currentPage - 1) * nursesPerPage, currentPage * nursesPerPage);
 
   const [filters, setFilters] = useState({
     latitude: 30.033,
@@ -144,6 +148,10 @@ export default function FindNurses() {
     console.log('Final filtered nurses:', filtered.length);
     setFilteredNurses(filtered);
   }, [nurses, searchTerm, filters.experience, filters.rating, filters.availability]);
+
+  useEffect(() => {
+    setCurrentPage(1); // Reset to first page on filter/search change
+  }, [filteredNurses.length]);
 
   const searchNurses = async () => {
     try {
@@ -385,15 +393,35 @@ export default function FindNurses() {
                 <div className="flex justify-center items-center py-12">
                   <LoadingSpinner />
                 </div>
-              ) : filteredNurses.length > 0 ? (
+              ) : paginatedNurses.length > 0 ? (
                 <div className="space-y-6">
                   <h3 className="text-lg font-semibold text-gray-900">
                     Found {filteredNurses.length} nurse{filteredNurses.length !== 1 ? 's' : ''} nearby
                   </h3>
                   <div className="space-y-4">
-                    {filteredNurses.map(nurse => (
+                    {paginatedNurses.map(nurse => (
                       <NurseCard key={nurse.id} nurse={nurse} />
                     ))}
+                  </div>
+                  {/* Pagination Controls */}
+                  <div className="flex justify-center items-center gap-4 mt-8">
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="px-4 py-2 rounded bg-gray-200 text-gray-700 font-medium disabled:opacity-50"
+                    >
+                      Previous
+                    </button>
+                    <span className="font-semibold text-gray-700">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="px-4 py-2 rounded bg-gray-200 text-gray-700 font-medium disabled:opacity-50"
+                    >
+                      Next
+                    </button>
                   </div>
                 </div>
               ) : !loading && (

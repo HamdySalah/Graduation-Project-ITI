@@ -538,8 +538,162 @@ export default function Dashboard() {
       </ErrorBoundary>
     );
   }
+  // Regular User Dashboard (Patient/Nurse)
+  if (user.role === 'patient') {
+    return (
+      <ErrorBoundary>
+        <Layout title={`Welcome back, ${user.name}!`}>
+          <div className="flex min-h-screen bg-gray-50">
+            {/* Sidebar (نفس الروابط الأصلية فقط) */}
+            <aside className="w-64 bg-white border-r flex flex-col justify-between py-8 px-4 min-h-screen">
+              <div>
+                <div className="flex flex-col items-center mb-10">
+                  <img
+                    src={user.avatarUrl || '/default-avatar.png'}
+                    alt={user.name}
+                    className="w-14 h-14 rounded-full mb-2 border"
+                  />
+                  <div className="font-semibold text-base text-gray-900">{user.name}</div>
+                </div>
+                <nav className="space-y-2">
+                  <button className="flex items-center w-full px-3 py-2 rounded-lg text-blue-700 bg-blue-50 font-medium">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M13 5v6h6" /></svg>
+                    Dashboard
+                  </button>
+                  <button onClick={() => navigationUtils.goToCreateRequest()} className="flex items-center w-full px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                    Requests
+                  </button>
+                  <button onClick={() => navigationUtils.goToNurses()} className="flex items-center w-full px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87M16 3.13a4 4 0 010 7.75M8 3.13a4 4 0 000 7.75" /></svg>
+                    Nurses
+                  </button>
+                  {/* لا تضف أي زر أو رابط غير موجود */}
+                </nav>
+              </div>
+              <button onClick={() => navigationUtils.logout()} className="flex items-center w-full px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 mt-8">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7" /></svg>
+                Log out
+              </button>
+            </aside>
 
-  // Nurse Dashboard with new UI
+            {/* Main Content */}
+            <main className="flex-1 px-12 py-10">
+              <h1 className="text-4xl font-bold mb-6">Dashboard</h1>
+
+              {/* إحصائيات الداشبورد الأصلية */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <StatCard
+                  title="Total Requests"
+                  value={stats.totalRequests || 0}
+                  icon="📋"
+                  color="blue"
+                />
+                <StatCard
+                  title="Pending Requests"
+                  value={stats.pendingRequests || 0}
+                  icon="⏳"
+                  color="yellow"
+                />
+                <StatCard
+                  title="Completed Requests"
+                  value={stats.completedRequests || 0}
+                  icon="✅"
+                  color="green"
+                />
+                <StatCard
+                  title="Total Spent"
+                  value={`$${stats.totalEarnings || 0}`}
+                  icon="💰"
+                  color="purple"
+                />
+              </div>
+
+              {/* Quick Actions (نفس الأزرار الأصلية فقط) */}
+              <div className="flex flex-wrap gap-4 mb-8">
+                <button
+                  onClick={() => navigationUtils.goToCreateRequest()}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-full font-semibold shadow hover:bg-blue-700 transition"
+                >
+                  New Request
+                </button>
+                <button
+                  onClick={() => navigationUtils.navigateTo('/requests')}
+                  className="bg-green-600 text-white px-6 py-2 rounded-full font-semibold shadow hover:bg-green-700 transition"
+                >
+                  View My Requests
+                </button>
+                <button
+                  onClick={() => navigationUtils.goToNurses()}
+                  className="bg-gray-100 text-gray-700 px-6 py-2 rounded-full font-semibold shadow hover:bg-gray-200 transition"
+                >
+                  View Nurses
+                </button>
+              </div>
+
+              {/* جدول الحجوزات (Recent Requests) */}
+              <div className="bg-white rounded-xl shadow p-0 mb-8 border overflow-x-auto">
+                <h2 className="text-xl font-bold mb-4 px-6 pt-6">My Bookings</h2>
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead>
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nurse</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {recentRequests.length > 0 ? recentRequests.map((request) => (
+                      <tr key={request.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <img src={request.nurse?.avatarUrl || '/default-avatar.png'} alt={request.nurse?.name} className="w-10 h-10 rounded-full inline-block mr-2 border" />
+                          <span className="align-middle">{request.nurse?.name || 'N/A'}</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">{request.title || 'N/A'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{request.scheduledDate ? new Date(request.scheduledDate).toLocaleDateString() : 'N/A'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${request.status === 'Completed' ? 'bg-green-100 text-green-800' : request.status === 'Scheduled' ? 'bg-gray-100 text-gray-800' : 'bg-yellow-100 text-yellow-800'}`}>{request.status || 'Pending'}</span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <button onClick={() => navigationUtils.goToRequest(request.id)} className="text-blue-600 font-semibold hover:underline">View</button>
+                        </td>
+                      </tr>
+                    )) : (
+                      <tr>
+                        <td colSpan={5} className="text-center py-8 text-gray-400">No bookings found.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Recent Activity (نفس الكود الأصلي) */}
+              <div className="bg-white rounded-xl shadow p-6 mb-8 border">
+                <h2 className="text-xl font-bold mb-4">Recent Activity</h2>
+                <ul className="space-y-4">
+                  {recentRequests.length > 0 ? recentRequests.map((request) => (
+                    <li key={request.id} className="flex items-center space-x-4">
+                      <span className="inline-block w-2 h-2 bg-blue-500 rounded-full"></span>
+                      <div>
+                        <div className="font-medium text-gray-900">{request.title || 'Nursing Request'}</div>
+                        <div className="text-sm text-gray-500">{request.createdAt ? new Date(request.createdAt).toLocaleDateString() : 'Unknown Date'}</div>
+                      </div>
+                    </li>
+                  )) : (
+                    <li className="text-gray-400">No recent activity.</li>
+                  )}
+                </ul>
+              </div>
+            </main>
+          </div>
+        </Layout>
+      </ErrorBoundary>
+    );
+  }
+
+  // Regular User Dashboard (Patient/Nurse)
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gray-50 flex">
