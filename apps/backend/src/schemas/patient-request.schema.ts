@@ -24,7 +24,7 @@ export enum ServiceType {
 
 @Schema({ timestamps: true })
 export class PatientRequest {
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: Types.ObjectId, ref: 'User', required: false }) // Temporarily remove required to debug
   patientId!: Types.ObjectId;
 
   @Prop({ type: Types.ObjectId, ref: 'User' })

@@ -48,7 +48,12 @@ export default function Layout({ children, title }: LayoutProps) {
           <div className="flex justify-between h-16">
             <div className="flex items-center">
               <Link href="/" className="flex-shrink-0">
-                <span className="text-2xl font-bold text-blue-600">NursePlatform</span>
+                <div className="flex items-center justify-center mb-8">
+                  <div className="bg-gradient-to-br from-blue-400 via-purple-400 to-blue-600 rounded-full p-3 shadow-2xl animate-pulse">
+                    <img src="/logo.png" alt="Nurse Platform Logo" className="h-20 w-20 object-contain drop-shadow-2xl animate-bounce" />
+                  </div>
+                  <span className="ml-4 text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-blue-400 tracking-wide">عناية</span>
+                </div>
               </Link>
             </div>
             <div className="flex items-center space-x-4">
@@ -80,6 +85,13 @@ export default function Layout({ children, title }: LayoutProps) {
                           className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
                         >
                           Profile
+                        </button>
+
+                        <button
+                          onClick={() => handleNavigation('/settings')}
+                          className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                        >
+                          Settings
                         </button>
 
                         <button
@@ -115,12 +127,20 @@ export default function Layout({ children, title }: LayoutProps) {
                         )}
 
                         {user.role === 'nurse' && canViewRequests && (
-                          <button
-                            onClick={() => navigateAndClose('/requests', () => setIsDropdownOpen(false))}
-                            className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
-                          >
-                            My Requests
-                          </button>
+                          <>
+                            <button
+                              onClick={() => navigateAndClose('/requests', () => setIsDropdownOpen(false))}
+                              className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                            >
+                              Patient Requests
+                            </button>
+                            <button
+                              onClick={() => navigateAndClose('/visit-history', () => setIsDropdownOpen(false))}
+                              className="w-full text-left block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                            >
+                              Visit History
+                            </button>
+                          </>
                         )}
 
                         {user.role === 'nurse' && !canAccessPlatform && (

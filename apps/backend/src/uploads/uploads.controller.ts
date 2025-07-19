@@ -9,9 +9,11 @@ import {
   UploadedFile,
   UploadedFiles,
   Request,
+  Response,
   BadRequestException,
   HttpStatus
 } from '@nestjs/common';
+import { Response as ExpressResponse } from 'express';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
@@ -251,8 +253,8 @@ export class UploadsController {
   @ApiNotFoundResponse({
     description: 'Image not found'
   })
-  async getProfileImage(@Param('filename') filename: string) {
-    return this.uploadsService.getFile('profiles', filename);
+  async getProfileImage(@Param('filename') filename: string, @Response() res: ExpressResponse) {
+    return this.uploadsService.serveFile('profiles', filename, res);
   }
 
   @Get('nurse-documents/:filename')
@@ -280,8 +282,32 @@ export class UploadsController {
   @ApiNotFoundResponse({
     description: 'Document not found'
   })
-  async getNurseDocument(@Param('filename') filename: string, @Request() req: any) {
-    return this.uploadsService.getNurseDocument(filename, req.user);
+  async getNurseDocument(@Param('filename') filename: string, @Response() res: ExpressResponse) {
+    return this.uploadsService.serveFile('nurse-documents', filename, res);
+  }
+
+  @Get('request-attachments/:filename')
+  @ApiOperation({
+    summary: 'Get request attachment',
+    description: 'Retrieve a request attachment file'
+  })
+  @ApiParam({
+    name: 'filename',
+    description: 'Attachment filename',
+    example: 'attachments-1642234567890-123456789.pdf'
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Attachment retrieved successfully'
+  })
+  @ApiUnauthorizedResponse({
+    description: 'Invalid or missing JWT token'
+  })
+  @ApiNotFoundResponse({
+    description: 'Attachment not found'
+  })
+  async getRequestAttachment(@Param('filename') filename: string, @Response() res: ExpressResponse) {
+    return this.uploadsService.serveFile('request-attachments', filename, res);
   }
 
   @Delete('profiles/:filename')

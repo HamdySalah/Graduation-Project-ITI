@@ -63,7 +63,12 @@ export default function Login() {
                   <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </Link>
-              <div className="text-2xl text-gray-800 font-bold">logo</div>
+              <div className="flex items-center justify-center mb-8">
+                <div className="bg-gradient-to-br from-blue-400 via-purple-400 to-blue-600 rounded-full p-3 shadow-2xl animate-pulse">
+                  <img src="/logo.png" alt="Nurse Platform Logo" className="h-20 w-20 object-contain drop-shadow-2xl animate-bounce" />
+                </div>
+                <span className="ml-4 text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-blue-400 tracking-wide">عناية</span>
+              </div>
             </div>
             <h2 className="text-3xl font-bold text-purple-700 text-center mb-6">Login</h2>
             <form onSubmit={handleSubmit} className="space-y-6 max-w-md mx-auto w-full">

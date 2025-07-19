@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { PatientRequest, PatientRequestDocument, RequestStatus } from '../schemas/patient-request.schema';
 import { UserDocument, UserRole } from '../schemas/user.schema';
 import { CreateRequestDto, UpdateRequestStatusDto } from '../dto/request.dto';
@@ -11,7 +11,25 @@ export class RequestsService {
     @InjectModel(PatientRequest.name) private requestModel: Model<PatientRequestDocument>,
   ) {}
 
+  /**
+   * Helper method to safely compare ObjectIds
+   * Handles cases where IDs might be strings or ObjectId instances
+   */
+  private compareObjectIds(id1: any, id2: any): boolean {
+    if (!id1 || !id2) return false;
+
+    // Convert both to strings for comparison
+    const str1 = id1.toString();
+    const str2 = id2.toString();
+
+    return str1 === str2;
+  }
+
   async createRequest(createRequestDto: CreateRequestDto, patientUser: UserDocument) {
+    console.log('🔍 Service createRequest called with user:', patientUser);
+    console.log('🔍 User _id:', patientUser._id);
+    console.log('🔍 User id:', patientUser.id);
+
     // Ensure only patients can create requests
     if (patientUser.role !== UserRole.PATIENT) {
       throw new ForbiddenException('Only patients can create service requests');
@@ -19,17 +37,19 @@ export class RequestsService {
 
     const { coordinates, scheduledDate, ...requestData } = createRequestDto;
 
-    const request = new this.requestModel({
+    const requestPayload = {
       ...requestData,
-      patientId: patientUser._id as any,
+      patientId: patientUser._id,
       location: {
         type: 'Point',
         coordinates: coordinates, // [longitude, latitude]
       },
       scheduledDate: new Date(scheduledDate || Date.now()),
-    });
+    };
 
-    const savedRequest = await request.save();
+    console.log('🔍 Request payload patientId:', requestPayload.patientId);
+
+    const savedRequest = await this.requestModel.create(requestPayload);
 
     // Populate patient information
     await savedRequest.populate('patientId', '-password');
@@ -58,17 +78,75 @@ export class RequestsService {
     };
   }
 
+  async getRequestById(requestId: string, user: UserDocument) {
+    const request = await this.requestModel
+      .findById(requestId)
+      .populate('patientId', '-password')
+      .populate('nurseId', '-password')
+      .exec();
+
+    if (!request) {
+      throw new NotFoundException('Request not found');
+    }
+
+    // Check if user has permission to view this request
+    if (user.role === UserRole.PATIENT && request.patientId._id.toString() !== user._id.toString()) {
+      throw new ForbiddenException('You can only view your own requests');
+    }
+
+    if (user.role === UserRole.NURSE &&
+        request.nurseId?._id.toString() !== user._id.toString() &&
+        request.status !== RequestStatus.PENDING) {
+      throw new ForbiddenException('You can only view requests assigned to you or pending requests');
+    }
+
+    return {
+      success: true,
+      message: 'Request retrieved successfully',
+      data: {
+        id: request._id,
+        title: request.title,
+        description: request.description,
+        serviceType: request.serviceType,
+        status: request.status,
+        coordinates: request.location.coordinates,
+        address: request.address,
+        scheduledDate: request.scheduledDate,
+        estimatedDuration: request.estimatedDuration,
+        urgencyLevel: request.urgencyLevel,
+        specialRequirements: request.specialRequirements,
+        budget: request.budget,
+        contactPhone: request.contactPhone,
+        notes: request.notes,
+        createdAt: request.createdAt,
+        updatedAt: request.updatedAt,
+        patient: request.patientId ? {
+          id: (request.patientId as any)._id,
+          name: (request.patientId as any).name,
+          email: (request.patientId as any).email,
+          phone: (request.patientId as any).phone,
+        } : null,
+        nurse: request.nurseId ? {
+          id: (request.nurseId as any)._id,
+          name: (request.nurseId as any).name,
+          email: (request.nurseId as any).email,
+          phone: (request.nurseId as any).phone,
+        } : null,
+      },
+    };
+  }
+
   async getRequests(user: UserDocument, status?: RequestStatus) {
     let query: any = {};
 
     // Filter based on user role
     if (user.role === UserRole.PATIENT) {
-      query.patientId = user._id as any;
+      query.patientId = user._id;
     } else if (user.role === UserRole.NURSE) {
       // Nurses can see requests assigned to them or available requests
       query = {
         $or: [
-          { nurseId: user._id as any },
+          { nurseId: user._id },
           { status: RequestStatus.PENDING }
         ]
       };
@@ -134,8 +212,8 @@ export class RequestsService {
     // Check permissions
     const canView =
       user.role === UserRole.ADMIN ||
-      request.patientId._id.equals(user._id as any) ||
-      (request.nurseId && request.nurseId._id.equals(user._id as any));
+      this.compareObjectIds(request.patientId, user._id) ||
+      (request.nurseId && this.compareObjectIds(request.nurseId, user._id));
 
     if (!canView) {
       throw new ForbiddenException('You do not have permission to view this request');
@@ -197,7 +275,7 @@ export class RequestsService {
       request.nurseId = user._id as any;
       request.acceptedAt = new Date();
     } else if (status === RequestStatus.COMPLETED) {
-      if (user.role !== UserRole.NURSE || !request.nurseId?.equals(user._id as any)) {
+      if (user.role !== UserRole.NURSE || !this.compareObjectIds(request.nurseId, user._id)) {
         throw new ForbiddenException('Only the assigned nurse can complete requests');
       }
       if (request.status !== RequestStatus.IN_PROGRESS && request.status !== RequestStatus.ACCEPTED) {
@@ -205,13 +283,13 @@ export class RequestsService {
       }
       request.completedAt = new Date();
     } else if (status === RequestStatus.CANCELLED) {
-      if (user.role !== UserRole.PATIENT || !request.patientId.equals(user._id as any)) {
+      if (user.role !== UserRole.PATIENT || !this.compareObjectIds(request.patientId, user._id)) {
         throw new ForbiddenException('Only the patient can cancel their requests');
       }
       request.cancelledAt = new Date();
       request.cancellationReason = cancellationReason;
     } else if (status === RequestStatus.IN_PROGRESS) {
-      if (user.role !== UserRole.NURSE || !request.nurseId?.equals(user._id as any)) {
+      if (user.role !== UserRole.NURSE || !this.compareObjectIds(request.nurseId, user._id)) {
         throw new ForbiddenException('Only the assigned nurse can start requests');
       }
       if (request.status !== RequestStatus.ACCEPTED) {

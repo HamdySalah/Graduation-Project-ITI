@@ -17,6 +17,7 @@ class ApiService {
   }
 
   // Check if token is expired (basic check)
+  /*
   private isTokenExpired(): boolean {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     if (!token) return true;
@@ -31,6 +32,7 @@ class ApiService {
       return true; // Assume expired if we can't parse
     }
   }
+  */
 
   // Set token expiration reminder
   private setTokenExpirationReminder(token: string) {
@@ -450,7 +452,7 @@ class ApiService {
     }
   }
 
-  async rejectNurse(nurseId: string) {
+  async rejectNurse(nurseId: string, rejectionReason?: string) {
     try {
       console.log('Rejecting nurse:', nurseId);
 
@@ -458,6 +460,7 @@ class ApiService {
       let response = await fetch(`${API_BASE_URL}/api/admin/reject-nurse/${nurseId}`, {
         method: 'POST',
         headers: this.getAuthHeaders(),
+        body: JSON.stringify({ rejectionReason }),
       });
 
       // If unauthorized, try without auth headers (temporary fix)
@@ -469,6 +472,7 @@ class ApiService {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
           },
+          body: JSON.stringify({ rejectionReason }),
         });
       }
 
@@ -481,15 +485,104 @@ class ApiService {
     }
   }
 
+  async getNurseDetails(nurseId: string) {
+    try {
+      console.log('🔍 Fetching nurse details for:', nurseId);
+      console.log('🔍 API Base URL:', API_BASE_URL);
+
+      const url = `${API_BASE_URL}/api/admin/nurse-details/${nurseId}`;
+      console.log('🔍 Full URL:', url);
+
+      const headers = this.getAuthHeaders();
+      console.log('🔍 Request headers:', headers);
+
+      const response = await fetch(url, { headers });
+
+      console.log('🔍 Response status:', response.status);
+      console.log('🔍 Response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Nurse details API failed:', response.status, response.statusText);
+        console.error('❌ Error response body:', errorText);
+
+        // Try to parse error message
+        try {
+          const errorData = JSON.parse(errorText);
+          throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+        } catch {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+      }
+
+      const result = await response.json();
+      console.log('🔍 Raw API response:', result);
+      console.log('🔍 Response type:', typeof result);
+      console.log('🔍 Response keys:', result ? Object.keys(result) : 'null');
+
+      // Handle the double-nested response structure
+      if (result && result.success && result.data) {
+        console.log('✅ First level data found:', result.data);
+
+        // Check if there's another nested level (double-nested response)
+        if (result.data.success && result.data.data) {
+          console.log('✅ Double-nested response detected, extracting inner data:', result.data.data);
+          console.log('✅ Inner data type:', typeof result.data.data);
+          console.log('✅ Inner data keys:', Object.keys(result.data.data));
+          return result.data.data;
+        }
+
+        // Single-nested response
+        console.log('✅ Single-nested response, using first level data:', result.data);
+        console.log('✅ Data type:', typeof result.data);
+        console.log('✅ Data keys:', Object.keys(result.data));
+        return result.data;
+      }
+
+      // Fallback if structure is different
+      if (result && typeof result === 'object' && result.id) {
+        console.log('✅ Using fallback structure (direct object):', result);
+        return result;
+      }
+
+      console.warn('❌ Unexpected nurse details response structure:', result);
+      throw new Error('Invalid response structure from server');
+    } catch (error) {
+      console.error('❌ Error fetching nurse details:', error);
+      throw error;
+    }
+  }
+
+  async updateNurseNotes(nurseId: string, notes: string) {
+    try {
+      console.log('Updating nurse notes for:', nurseId);
+
+      const response = await fetch(`${API_BASE_URL}/api/admin/nurse-notes/${nurseId}`, {
+        method: 'PUT',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ adminNotes: notes }),
+      });
+
+      if (!response.ok) {
+        console.error('Update nurse notes API failed:', response.status, response.statusText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('Update nurse notes response:', result);
+      return result;
+    } catch (error) {
+      console.error('Error updating nurse notes:', error);
+      throw error;
+    }
+  }
+
   async getAdminStats() {
     try {
       console.log('Fetching admin stats from:', `${API_BASE_URL}/api/admin/stats`);
 
       const response = await fetch(`${API_BASE_URL}/api/admin/stats`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: this.getAuthHeaders(),
       });
 
       if (!response.ok) {
@@ -573,10 +666,7 @@ class ApiService {
       console.log('Fetching all users from:', `${API_BASE_URL}/api/admin/users`);
 
       const response = await fetch(`${API_BASE_URL}/api/admin/users`, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: this.getAuthHeaders(),
       });
 
       console.log('Users API response status:', response.status);

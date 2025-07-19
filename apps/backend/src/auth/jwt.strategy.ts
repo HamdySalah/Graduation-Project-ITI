@@ -48,8 +48,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     // Always return a plain object with all required fields for downstream guards/controllers
+    // Include both id and _id for compatibility with different parts of the system
     const result = {
       id: String(user._id),
+      _id: String(user._id), // Ensure _id is available as string for Mongoose
       role: user.role,
       email: user.email,
       status: user.status,
