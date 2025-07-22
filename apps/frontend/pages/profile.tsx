@@ -221,6 +221,9 @@ export default function Profile() {
                     value={formData.phone}
                     onChange={handleInputChange}
                     required
+                    placeholder="01030321695"
+                    pattern="(\+20|0)?1[0-2,5]\d{8}"
+                    title="Please enter a valid Egyptian phone number (e.g., 01030321695)"
                     className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>

@@ -1,4 +1,4 @@
-import { IsEmail, IsString, IsEnum, IsOptional, IsArray, IsNumber, MinLength, IsPhoneNumber, isPhoneNumber } from 'class-validator';
+import { IsEmail, IsString, IsEnum, IsOptional, IsArray, IsNumber, MinLength, IsPhoneNumber, isPhoneNumber, Matches } from 'class-validator';
 import { UserRole } from '../schemas/user.schema';
 import { SpecializationType } from '../schemas/nurse-profile.schema';
 
@@ -14,6 +14,9 @@ export class RegisterDto {
   password!: string;
 
   @IsString()
+  @Matches(/^(\+20|0)?1[0-2,5]\d{8}$/, {
+    message: 'Please provide a valid Egyptian phone number (e.g., 01030321695 or +201030321695)'
+  })
   phone!: string;
 
   @IsEnum(UserRole)

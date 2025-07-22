@@ -3,6 +3,7 @@ import { useAuth } from '../../lib/auth';
 import Layout, { Card } from '../../components/Layout';
 import { apiService } from '../../lib/api';
 import { useRouter } from 'next/router';
+import ImageUpload from '../../components/ImageUpload';
 
 const SERVICE_TYPES = [
   { value: 'home_care', label: 'Home Care' },
@@ -19,7 +20,7 @@ const URGENCY_LEVELS = [
   { value: 'low', label: 'Low' },
   { value: 'medium', label: 'Medium' },
   { value: 'high', label: 'High' },
-  { value: 'urgent', label: 'Urgent' },
+  { value: 'critical', label: 'Critical' },
 ];
 
 export default function CreateRequest() {
@@ -41,11 +42,26 @@ export default function CreateRequest() {
     budget: '',
     contactPhone: '',
     notes: '',
+    images: [] as Array<{
+      filename: string;
+      originalName: string;
+      url: string;
+      size: number;
+    }>,
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleImagesChange = (images: Array<{
+    filename: string;
+    originalName: string;
+    url: string;
+    size: number;
+  }>) => {
+    setFormData(prev => ({ ...prev, images }));
   };
 
   const validateForm = () => {
@@ -92,6 +108,7 @@ export default function CreateRequest() {
         scheduledDate: new Date(formData.scheduledDate).toISOString(),
         estimatedDuration: parseInt(formData.estimatedDuration) || 1,
         budget: formData.budget ? parseFloat(formData.budget) : undefined,
+        contactPhone: formData.contactPhone.trim() || undefined, // Only include if not empty
       };
 
       console.log('🚀 Submitting request:', requestData);
@@ -312,16 +329,17 @@ export default function CreateRequest() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Contact Phone *
+                Contact Phone (Optional)
               </label>
               <input
                 type="tel"
                 name="contactPhone"
                 value={formData.contactPhone}
                 onChange={handleInputChange}
-                required
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="+20 XXX XXX XXXX"
+                placeholder="01030321695"
+                pattern="(\+20|0)?1[0-2,5]\d{8}"
+                title="Please enter a valid Egyptian phone number (e.g., 01030321695) or leave empty"
               />
             </div>
 
@@ -351,6 +369,22 @@ export default function CreateRequest() {
               rows={3}
               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Any additional information for the nurse..."
+            />
+          </div>
+
+          {/* Image Upload Section */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Medical Images (Optional)
+            </label>
+            <p className="text-sm text-gray-600 mb-3">
+              Upload photos of the condition, medical reports, or any relevant images to help the nurse understand your needs better.
+            </p>
+            <ImageUpload
+              onImagesChange={handleImagesChange}
+              maxImages={5}
+              maxSizePerImage={5}
+              initialImages={formData.images}
             />
           </div>
 

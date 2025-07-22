@@ -11,7 +11,9 @@ import {
   ArrayMaxSize,
   Min,
   Max,
-  IsPhoneNumber
+  IsPhoneNumber,
+  Matches,
+  ValidateIf
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -128,7 +130,10 @@ export class CreateRequestDto {
   })
   @IsOptional()
   @IsString()
-  @IsPhoneNumber(undefined, { message: 'Please provide a valid phone number' })
+  @ValidateIf((o) => o.contactPhone && o.contactPhone.trim() !== '')
+  @Matches(/^(\+20|0)?1[0-2,5]\d{8}$/, {
+    message: 'Please provide a valid Egyptian phone number (e.g., 01030321695 or +201030321695)'
+  })
   contactPhone?: string;
 
   @ApiPropertyOptional({
@@ -140,6 +145,28 @@ export class CreateRequestDto {
   @IsString()
   @MaxLength(500, { message: 'Notes must not exceed 500 characters' })
   notes?: string;
+
+  @ApiPropertyOptional({
+    description: 'Array of uploaded images related to the condition',
+    type: 'array',
+    items: {
+      type: 'object',
+      properties: {
+        filename: { type: 'string' },
+        originalName: { type: 'string' },
+        url: { type: 'string' },
+        size: { type: 'number' },
+      },
+    },
+  })
+  @IsOptional()
+  @IsArray()
+  images?: Array<{
+    filename: string;
+    originalName: string;
+    url: string;
+    size: number;
+  }>;
 }
 
 export class UpdateRequestStatusDto {

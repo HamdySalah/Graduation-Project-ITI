@@ -241,6 +241,13 @@ class ApiService {
     return result;
   }
 
+  async getNurseById(nurseId: string) {
+    const response = await fetch(`${API_BASE_URL}/api/nurses/${nurseId}`, {
+      headers: this.getAuthHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
   async toggleNurseAvailability() {
     const response = await fetch(`${API_BASE_URL}/api/nurses/availability`, {
       method: 'PATCH',
@@ -741,6 +748,99 @@ class ApiService {
       // Return the original data so the UI can still update
       return profileData;
     }
+  }
+
+  // Payments
+  async createPaymentIntent(data: {
+    requestId: string;
+    amount: number;
+    paymentMethod: string;
+    description?: string;
+    metadata?: Record<string, any>;
+  }) {
+    const response = await fetch(`${API_BASE_URL}/api/payments/create-payment-intent`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return this.handleResponse(response);
+  }
+
+  async confirmPayment(data: {
+    paymentIntentId: string;
+    requestId: string;
+  }) {
+    const response = await fetch(`${API_BASE_URL}/api/payments/confirm-payment`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getPaymentHistory(page = 1, limit = 10) {
+    const response = await fetch(`${API_BASE_URL}/api/payments?page=${page}&limit=${limit}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
+  async getPaymentById(paymentId: string) {
+    const response = await fetch(`${API_BASE_URL}/api/payments/${paymentId}`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
+  async refundPayment(paymentId: string, data: {
+    reason: string;
+    amount?: number;
+  }) {
+    const response = await fetch(`${API_BASE_URL}/api/payments/refund/${paymentId}`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(data),
+    });
+    return this.handleResponse(response);
+  }
+
+  // Image Upload
+  async uploadImage(formData: FormData) {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const response = await fetch(`${API_BASE_URL}/api/uploads/image`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+    return this.handleResponse(response);
+  }
+
+  async uploadImages(formData: FormData) {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const response = await fetch(`${API_BASE_URL}/api/uploads/images`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+    return this.handleResponse(response);
+  }
+
+  async deleteImage(filename: string) {
+    const response = await fetch(`${API_BASE_URL}/api/uploads/images/${filename}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+    });
+    return this.handleResponse(response);
+  }
+
+  getImageUrl(filename: string) {
+    return `${API_BASE_URL}/api/uploads/images/${filename}`;
   }
 }
 

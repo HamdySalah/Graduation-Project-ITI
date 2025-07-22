@@ -14,6 +14,21 @@ export class NursesController {
     return this.nursesService.getNearbyNurses(getNearbyNursesDto);
   }
 
+  @Get('availability')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.NURSE)
+  async getAvailability(@Request() req: any) {
+    // This is just to ensure the route exists for GET requests
+    return { isAvailable: req.user.isAvailable || false };
+  }
+
+  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  async getNurseById(@Param('id') nurseId: string) {
+    console.log('🎯 NursesController.getNurseById called with ID:', nurseId);
+    return this.nursesService.getNurseById(nurseId);
+  }
+
   @Patch(':id/verify')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)

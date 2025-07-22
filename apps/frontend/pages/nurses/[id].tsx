@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../../lib/auth';
 import Layout, { Card, LoadingSpinner } from '../../components/Layout';
 import Link from 'next/link';
+import { apiService } from '../../lib/api';
 import Image from 'next/image';
 
 interface NurseProfile {
@@ -53,20 +54,18 @@ export default function NurseProfilePage() {
   const loadNurseProfile = async () => {
     try {
       setLoading(true);
-      // Note: You'll need to add this endpoint to your API service
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/nurses/${id}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to load nurse profile');
-      }
-      
-      const data = await response.json();
-      setNurse(data);
+      console.log('🔍 Loading nurse profile for ID:', id);
+
+      const response = await apiService.getNurseById(id as string);
+      console.log('🔍 Nurse profile response:', response);
+
+      // Handle different response formats
+      const nurseData = response?.data || response;
+      console.log('🔍 Nurse data:', nurseData);
+
+      setNurse(nurseData);
     } catch (err: any) {
+      console.error('❌ Error loading nurse profile:', err);
       setError(err.message || 'Failed to load nurse profile');
     } finally {
       setLoading(false);
@@ -81,12 +80,13 @@ export default function NurseProfilePage() {
     );
   }
 
-  if (error || !nurse) {
+  if (error || !nurse || typeof nurse !== 'object') {
     return (
       <Layout>
         <div className="text-center py-8">
-          <p className="text-red-600">{error || 'Nurse not found'}</p>
+          <p className="text-red-600">{error || 'Nurse not found or invalid data'}</p>
           <button
+            type="button"
             onClick={() => router.back()}
             className="mt-4 text-blue-600 hover:text-blue-800"
           >
@@ -128,15 +128,15 @@ export default function NurseProfilePage() {
                 <div className="relative">
                   <div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center">
                     <span className="text-2xl text-white font-semibold">
-                      {nurse.name.charAt(0).toUpperCase()}
+                      {nurse.name?.charAt(0)?.toUpperCase() || 'N'}
                     </span>
                   </div>
                 </div>
                 <div className="flex-1">
-                  <h1 className="text-2xl font-bold text-gray-900">{nurse.name}</h1>
+                  <h1 className="text-2xl font-bold text-gray-900">{nurse.name || 'Unknown Nurse'}</h1>
                   <p className="text-gray-600 mb-1">Registered Nurse (RN)</p>
                   <p className="text-gray-500 text-sm">
-                    {nurse.yearsOfExperience} years experience | {nurse.rating.toFixed(1)} stars ({nurse.totalReviews} reviews)
+                    {nurse.yearsOfExperience || 0} years experience | {nurse.rating?.toFixed(1) || '0.0'} stars ({nurse.totalReviews || 0} reviews)
                   </p>
                 </div>
               </div>
@@ -146,7 +146,7 @@ export default function NurseProfilePage() {
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">About</h2>
               <p className="text-gray-700 leading-relaxed">
-                {nurse.bio || `${nurse.name} is a compassionate and experienced Registered Nurse with a passion for providing personalized care. She has a proven track record of improving patient outcomes. ${nurse.name} is dedicated to building strong relationships with her patients and their families, ensuring they feel supported and well-cared for.`}
+                {nurse.bio || `${nurse.name || 'This nurse'} is a compassionate and experienced Registered Nurse with a passion for providing personalized care. They have a proven track record of improving patient outcomes and are dedicated to building strong relationships with patients and their families, ensuring they feel supported and well-cared for.`}
               </p>
             </div>
 
@@ -235,20 +235,20 @@ export default function NurseProfilePage() {
               {/* Rating Summary */}
               <div className="flex items-center space-x-8 mb-8">
                 <div className="text-center">
-                  <div className="text-4xl font-bold text-gray-900">{nurse.rating.toFixed(1)}</div>
+                  <div className="text-4xl font-bold text-gray-900">{nurse.rating?.toFixed(1) || '0.0'}</div>
                   <div className="flex items-center justify-center mt-1">
                     {[...Array(5)].map((_, i) => (
                       <span
                         key={i}
                         className={`text-lg ${
-                          i < Math.floor(nurse.rating) ? 'text-yellow-400' : 'text-gray-300'
+                          i < Math.floor(nurse.rating || 0) ? 'text-yellow-400' : 'text-gray-300'
                         }`}
                       >
                         ★
                       </span>
                     ))}
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">{nurse.totalReviews} reviews</p>
+                  <p className="text-sm text-gray-500 mt-1">{nurse.totalReviews || 0} reviews</p>
                 </div>
 
                 <div className="flex-1 space-y-2">
@@ -432,11 +432,11 @@ export default function NurseProfilePage() {
               <div className="space-y-4 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Hourly Rate:</span>
-                  <span className="font-medium">{nurse.hourlyRate} EGP/hour</span>
+                  <span className="font-medium">{nurse.hourlyRate || 'N/A'} EGP/hour</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Experience:</span>
-                  <span className="font-medium">{nurse.yearsOfExperience} years</span>
+                  <span className="font-medium">{nurse.yearsOfExperience || 0} years</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Completed Jobs:</span>
@@ -464,7 +464,7 @@ export default function NurseProfilePage() {
 
               {user?.role === 'patient' && nurse.isAvailable && (
                 <Link
-                  href={`/requests/create?nurseId=${nurse.id}`}
+                  href={`/requests/create?nurseId=${nurse.id || ''}`}
                   className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-lg font-medium mt-6 block text-center"
                 >
                   Book Now

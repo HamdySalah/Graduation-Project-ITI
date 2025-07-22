@@ -22,11 +22,6 @@ export class RequestsController {
     return this.requestsService.getRequests(req.user, status);
   }
 
-  @Get(':id')
-  async getRequestById(@Param('id') id: string, @Request() req: any) {
-    return this.requestsService.getRequestById(id, req.user);
-  }
-
   @Get('dashboard/stats')
   async getDashboardStats(@Request() req : any) {
     return this.requestsService.getDashboardStats(req.user);

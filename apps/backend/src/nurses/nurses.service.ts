@@ -167,6 +167,73 @@ export class NursesService {
     return result;
   }
 
+  async getNurseById(nurseId: string) {
+    console.log('🔍 getNurseById called with ID:', nurseId);
+
+    // Find the nurse user
+    const nurse = await this.userModel
+      .findById(nurseId)
+      .select('-password')
+      .exec();
+
+    console.log('🔍 Found nurse:', nurse ? 'Yes' : 'No');
+
+    if (!nurse) {
+      throw new NotFoundException('Nurse not found');
+    }
+
+    if (nurse.role !== UserRole.NURSE) {
+      throw new NotFoundException('User is not a nurse');
+    }
+
+    // Get nurse profile
+    const profile = await this.nurseProfileModel
+      .findOne({ userId: nurse._id })
+      .exec();
+
+    // Build response object
+    const nurseData = {
+      id: nurse._id.toString(),
+      name: nurse.name,
+      email: nurse.email,
+      phone: nurse.phone,
+      location: nurse.location,
+      address: nurse.address,
+      status: nurse.status,
+      createdAt: nurse.createdAt,
+      profileImage: nurse.profileImage,
+
+      // Profile data (if exists)
+      ...(profile && {
+        licenseNumber: profile.licenseNumber,
+        yearsOfExperience: profile.yearsOfExperience,
+        specializations: profile.specializations,
+        education: profile.education,
+        certifications: profile.certifications,
+        documents: profile.documents,
+        hourlyRate: profile.hourlyRate,
+        bio: profile.bio,
+        languages: profile.languages,
+        rating: profile.rating,
+        totalReviews: profile.totalReviews,
+        completedJobs: profile.completedJobs,
+        isAvailable: profile.isAvailable,
+        completionStatus: profile.completionStatus,
+        step1Completed: profile.step1Completed,
+        step2Completed: profile.step2Completed,
+        step3Completed: profile.step3Completed,
+        submittedAt: profile.submittedAt,
+        verifiedAt: profile.verifiedAt,
+      }),
+    };
+
+    return {
+      success: true,
+      message: 'Nurse profile retrieved successfully',
+      data: nurseData,
+    };
+  }
+
   async toggleAvailability(user: UserDocument) {
     if (user.role !== UserRole.NURSE) {
       throw new ForbiddenException('Only nurses can toggle availability');

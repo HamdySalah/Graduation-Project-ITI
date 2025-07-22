@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../../lib/auth';
 import Layout, { Card, LoadingSpinner, StatusBadge } from '../../components/Layout';
 import { apiService } from '../../lib/api';
+import ImageGallery from '../../components/ImageGallery';
 
 interface RequestDetails {
   id: string;
@@ -59,9 +60,16 @@ export default function RequestDetails() {
   const loadRequestDetails = async () => {
     try {
       setLoading(true);
-      const data = await apiService.getRequestById(id as string);
-      setRequest(data as RequestDetails);
+      const response = await apiService.getRequestById(id as string);
+      console.log('🔍 Request response:', response);
+
+      // Handle different response formats
+      const requestData = response?.data || response;
+      console.log('🔍 Request data:', requestData);
+
+      setRequest(requestData as RequestDetails);
     } catch (err: any) {
+      console.error('❌ Error loading request:', err);
       setError(err.message || 'Failed to load request details');
     } finally {
       setLoading(false);
@@ -135,12 +143,13 @@ export default function RequestDetails() {
     );
   }
 
-  if (error || !request) {
+  if (error || !request || typeof request !== 'object') {
     return (
       <Layout>
         <div className="text-center py-8">
-          <p className="text-red-600">{error || 'Request not found'}</p>
+          <p className="text-red-600">{error || 'Request not found or invalid data'}</p>
           <button
+            type="button"
             onClick={() => router.back()}
             className="mt-4 text-blue-600 hover:text-blue-800"
           >
@@ -158,23 +167,23 @@ export default function RequestDetails() {
         <Card className="p-6">
           <div className="flex justify-between items-start mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{request.title}</h1>
-              <p className="text-gray-600">{request.serviceType.replace('_', ' ')}</p>
+              <h1 className="text-2xl font-bold text-gray-900">{request.title || 'Untitled Request'}</h1>
+              <p className="text-gray-600">{request.serviceType?.replace('_', ' ') || 'N/A'}</p>
             </div>
             <div className="flex items-center space-x-2">
               <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                request.urgencyLevel === 'urgent' ? 'bg-red-100 text-red-800' :
+                request.urgencyLevel === 'urgent' || request.urgencyLevel === 'critical' ? 'bg-red-100 text-red-800' :
                 request.urgencyLevel === 'high' ? 'bg-orange-100 text-orange-800' :
                 request.urgencyLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
                 'bg-green-100 text-green-800'
               }`}>
-                {request.urgencyLevel.toUpperCase()} PRIORITY
+                {request.urgencyLevel?.toUpperCase() || 'LOW'} PRIORITY
               </span>
               <StatusBadge status={request.status} />
             </div>
           </div>
 
-          <p className="text-gray-700 mb-6">{request.description}</p>
+          <p className="text-gray-700 mb-6">{request.description || 'No description provided'}</p>
 
           {/* Action Buttons */}
           {getStatusActions().length > 0 && (
@@ -200,26 +209,30 @@ export default function RequestDetails() {
             <div className="space-y-3">
               <div>
                 <span className="font-medium text-gray-500">Location:</span>
-                <p className="text-gray-900">{request.address}</p>
+                <p className="text-gray-900">{request.address || 'N/A'}</p>
               </div>
               <div>
                 <span className="font-medium text-gray-500">Scheduled Date & Time:</span>
                 <p className="text-gray-900">
-                  {new Date(request.scheduledDate).toLocaleDateString()} at{' '}
-                  {new Date(request.scheduledDate).toLocaleTimeString()}
+                  {request.scheduledDate ? (
+                    <>
+                      {new Date(request.scheduledDate).toLocaleDateString()} at{' '}
+                      {new Date(request.scheduledDate).toLocaleTimeString()}
+                    </>
+                  ) : 'N/A'}
                 </p>
               </div>
               <div>
                 <span className="font-medium text-gray-500">Duration:</span>
-                <p className="text-gray-900">{request.estimatedDuration} hours</p>
+                <p className="text-gray-900">{request.estimatedDuration || 'N/A'} hours</p>
               </div>
               <div>
                 <span className="font-medium text-gray-500">Budget:</span>
-                <p className="text-gray-900">{request.budget} EGP</p>
+                <p className="text-gray-900">{request.budget || 'N/A'} EGP</p>
               </div>
               <div>
                 <span className="font-medium text-gray-500">Contact Phone:</span>
-                <p className="text-gray-900">{request.contactPhone}</p>
+                <p className="text-gray-900">{request.contactPhone || 'N/A'}</p>
               </div>
               {request.specialRequirements && (
                 <div>
@@ -233,19 +246,32 @@ export default function RequestDetails() {
                   <p className="text-gray-900">{request.notes}</p>
                 </div>
               )}
+
+              {/* Medical Images Section */}
+              {request.images && request.images.length > 0 && (
+                <div>
+                  <ImageGallery
+                    images={request.images}
+                    title="Medical Images"
+                    allowDelete={false}
+                  />
+                </div>
+              )}
             </div>
           </Card>
 
           <div className="space-y-6">
             {/* Patient Information */}
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Patient Information</h3>
-              <div className="space-y-2">
-                <p><span className="font-medium text-gray-500">Name:</span> {request.patient.name}</p>
-                <p><span className="font-medium text-gray-500">Email:</span> {request.patient.email}</p>
-                <p><span className="font-medium text-gray-500">Phone:</span> {request.patient.phone}</p>
-              </div>
-            </Card>
+            {request.patient && (
+              <Card className="p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Patient Information</h3>
+                <div className="space-y-2">
+                  <p><span className="font-medium text-gray-500">Name:</span> {request.patient.name || 'N/A'}</p>
+                  <p><span className="font-medium text-gray-500">Email:</span> {request.patient.email || 'N/A'}</p>
+                  <p><span className="font-medium text-gray-500">Phone:</span> {request.patient.phone || 'N/A'}</p>
+                </div>
+              </Card>
+            )}
 
             {/* Nurse Information */}
             {request.nurse && (
@@ -285,7 +311,7 @@ export default function RequestDetails() {
               <div className="flex items-center space-x-3">
                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                 <div>
-                  <p className="font-medium">Status Updated to {request.status.replace('_', ' ')}</p>
+                  <p className="font-medium">Status Updated to {request.status?.replace('_', ' ') || 'Unknown'}</p>
                   <p className="text-sm text-gray-500">
                     {new Date(request.updatedAt).toLocaleString()}
                   </p>
@@ -305,14 +331,29 @@ export default function RequestDetails() {
           </div>
         </Card>
 
-        {/* Back Button */}
-        <div className="flex justify-start">
+        {/* Action Buttons */}
+        <div className="flex justify-between items-center">
           <button
+            type="button"
             onClick={() => router.back()}
             className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
           >
             ← Back to Requests
           </button>
+
+          {/* Pay Now Button for completed requests */}
+          {user?.role === 'patient' && request.status === 'completed' && (
+            <button
+              type="button"
+              onClick={() => router.push(`/payment/${request.id}`)}
+              className="px-6 py-3 bg-green-600 text-white rounded-md font-medium hover:bg-green-700 transition-colors flex items-center space-x-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+              <span>Pay Now - EGP {request.budget}</span>
+            </button>
+          )}
         </div>
       </div>
     </Layout>

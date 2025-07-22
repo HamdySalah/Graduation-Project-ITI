@@ -82,6 +82,21 @@ export class PatientRequest {
   @Prop()
   notes?: string;
 
+  @Prop([{
+    filename: { type: String, required: true },
+    originalName: { type: String, required: true },
+    url: { type: String, required: true },
+    size: { type: Number, required: true },
+    uploadedAt: { type: Date, default: Date.now },
+  }])
+  images?: Array<{
+    filename: string;
+    originalName: string;
+    url: string;
+    size: number;
+    uploadedAt: Date;
+  }>;
+
   @Prop()
   acceptedAt?: Date;
 

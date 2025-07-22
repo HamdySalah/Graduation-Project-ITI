@@ -18,6 +18,7 @@ import { configValidationSchema } from '../config/config.validation';
 import { GlobalExceptionFilter } from '../common/filters/global-exception.filter';
 import { ResponseInterceptor } from '../common/interceptors/response.interceptor';
 import { AiChatModule } from '../ai-chat/ai-chat.module';
+import { PaymentsModule } from '../payments/payments.module';
 import { UploadsModule } from '../uploads/uploads.module';
 
 @Module({
@@ -51,6 +52,7 @@ import { UploadsModule } from '../uploads/uploads.module';
     UploadsModule,
     // EmailModule, // Temporarily disabled due to build issues
     AiChatModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [

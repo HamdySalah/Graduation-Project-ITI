@@ -53,6 +53,7 @@ const sidebarItems = [
 function RequestsList() {
   const { user } = useAuth();
   const [availableRequests, setAvailableRequests] = useState<Request[]>([]);
+  const [myRequests, setMyRequests] = useState<Request[]>([]);
   const [activeApplications, setActiveApplications] = useState<Application[]>([]);
   const [pastApplications, setPastApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +62,7 @@ function RequestsList() {
   const [specialtyFilter, setSpecialtyFilter] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
+  const [cancelling, setCancelling] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -72,12 +74,18 @@ function RequestsList() {
     try {
       setLoading(true);
 
-      // Load available requests (for nurses to apply to)
-      const requestsData = await apiService.getRequests();
-      const available = (requestsData as Request[]).filter(req =>
-        req.status === 'pending' || req.status === 'open'
-      );
-      setAvailableRequests(available);
+      if (user?.role === 'patient') {
+        // Load patient's own requests
+        const requestsData = await apiService.getRequests();
+        setMyRequests(requestsData as Request[]);
+      } else if (user?.role === 'nurse') {
+        // Load available requests (for nurses to apply to)
+        const requestsData = await apiService.getRequests();
+        const available = (requestsData as Request[]).filter(req =>
+          req.status === 'pending' || req.status === 'open'
+        );
+        setAvailableRequests(available);
+      }
 
       // Mock data for applications (in real app, this would come from API)
       const mockActiveApplications: Application[] = [
@@ -160,6 +168,22 @@ function RequestsList() {
       loadData(); // Reload to get updated data
     } catch (err: any) {
       setError(err.message || 'Failed to apply to request');
+    }
+  };
+
+  const handleCancelRequest = async (requestId: string) => {
+    const reason = prompt('Please provide a cancellation reason:');
+    if (!reason) return;
+
+    try {
+      setCancelling(requestId);
+      await apiService.updateRequestStatus(requestId, 'cancelled', reason);
+      await loadData(); // Reload to get updated data
+      alert('Request cancelled successfully');
+    } catch (err: any) {
+      setError(err.message || 'Failed to cancel request');
+    } finally {
+      setCancelling(null);
     }
   };
 
@@ -246,8 +270,15 @@ function RequestsList() {
           <div className="max-w-6xl">
             {/* Header */}
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Requests</h1>
-              <p className="text-gray-600">Find patients that need your care</p>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                {user?.role === 'patient' ? 'My Requests' : 'Requests'}
+              </h1>
+              <p className="text-gray-600">
+                {user?.role === 'patient'
+                  ? 'Manage your nursing service requests'
+                  : 'Find patients that need your care'
+                }
+              </p>
             </div>
 
             {/* Search and Filters */}
@@ -321,28 +352,60 @@ function RequestsList() {
               </div>
             ) : (
               <div className="space-y-8">
-                {/* Available Requests Section */}
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900 mb-6">Available Requests</h2>
-                  <div className="space-y-4">
-                    {availableRequests.length > 0 ? (
-                      availableRequests.map(request => (
-                        <RequestCard
-                          key={request.id}
-                          request={request}
-                          type="available"
-                          onApply={handleApplyToRequest}
-                          formatDate={formatDate}
-                          getPatientImage={getPatientImage}
-                        />
-                      ))
-                    ) : (
-                      <div className="text-center py-8 text-gray-500">
-                        No available requests at the moment
-                      </div>
-                    )}
+                {/* Patient View - My Requests */}
+                {user?.role === 'patient' && (
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900 mb-6">My Requests</h2>
+                    <div className="space-y-4">
+                      {myRequests.length > 0 ? (
+                        myRequests.map(request => (
+                          <PatientRequestCard
+                            key={request.id}
+                            request={request}
+                            onCancel={handleCancelRequest}
+                            formatDate={formatDate}
+                            cancelling={cancelling === request.id}
+                          />
+                        ))
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          <p className="mb-4">You haven't created any requests yet</p>
+                          <Link
+                            href="/requests/create"
+                            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            Create Your First Request
+                          </Link>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {/* Nurse View - Available Requests */}
+                {user?.role === 'nurse' && (
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900 mb-6">Available Requests</h2>
+                    <div className="space-y-4">
+                      {availableRequests.length > 0 ? (
+                        availableRequests.map(request => (
+                          <RequestCard
+                            key={request.id}
+                            request={request}
+                            type="available"
+                            onApply={handleApplyToRequest}
+                            formatDate={formatDate}
+                            getPatientImage={getPatientImage}
+                          />
+                        ))
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          No available requests at the moment
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Active Applications Section */}
                 <div>
@@ -493,6 +556,135 @@ function ApplicationCard({
               }}
             />
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Patient Request Card Component for Patient's Own Requests
+function PatientRequestCard({
+  request,
+  onCancel,
+  formatDate,
+  cancelling
+}: {
+  request: Request;
+  onCancel: (id: string) => void;
+  formatDate: (date: string) => string;
+  cancelling: boolean;
+}) {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'accepted': return 'bg-blue-100 text-blue-800';
+      case 'in_progress': return 'bg-purple-100 text-purple-800';
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'pending': return 'Pending';
+      case 'accepted': return 'Accepted';
+      case 'in_progress': return 'In Progress';
+      case 'completed': return 'Completed';
+      case 'cancelled': return 'Cancelled';
+      default: return status;
+    }
+  };
+
+  const canCancel = ['pending', 'accepted'].includes(request.status);
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between">
+        <div className="flex-1">
+          <div className="flex items-center space-x-3 mb-3">
+            <h3 className="text-lg font-semibold text-gray-900">{request.title}</h3>
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(request.status)}`}>
+              {getStatusText(request.status)}
+            </span>
+          </div>
+
+          <p className="text-gray-600 mb-4 line-clamp-2">{request.description}</p>
+
+          {/* Image indicator */}
+          {request.images && request.images.length > 0 && (
+            <div className="flex items-center text-sm text-blue-600 mb-3">
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>{request.images.length} image{request.images.length > 1 ? 's' : ''} attached</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-500">
+            <div className="flex items-center">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              {request.address}
+            </div>
+            <div className="flex items-center">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              Scheduled: {formatDate(request.scheduledDate)}
+            </div>
+            <div className="flex items-center">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+              </svg>
+              Budget: ${request.budget}
+            </div>
+            <div className="flex items-center">
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Duration: {request.estimatedDuration}h
+            </div>
+          </div>
+
+          {request.nurse && (
+            <div className="mt-4 p-3 bg-green-50 rounded-md">
+              <h4 className="font-medium text-green-900 mb-1">Assigned Nurse</h4>
+              <p className="text-sm text-green-800">{request.nurse.name}</p>
+              <p className="text-xs text-green-600">{request.nurse.phone}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col space-y-2 ml-6">
+          <Link
+            href={`/requests/${request.id}`}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+          >
+            View Details
+          </Link>
+
+          {canCancel && (
+            <button
+              onClick={() => onCancel(request.id)}
+              disabled={cancelling}
+              className="inline-flex items-center px-3 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {cancelling ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-red-700" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Cancelling...
+                </>
+              ) : (
+                'Cancel Request'
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, IsEmail, IsEnum, IsNumber, IsArray, IsBoolean } from 'class-validator';
+import { IsOptional, IsString, IsEmail, IsEnum, IsNumber, IsArray, IsBoolean, Matches } from 'class-validator';
 import { UserRole, UserStatus } from '../schemas/user.schema';
 
 export class UserListDto {
@@ -181,10 +181,13 @@ export class UpdateUserDto {
 
   @ApiProperty({
     description: 'User phone',
-    example: '+1234567890'
+    example: '01030321695'
   })
   @IsOptional()
   @IsString()
+  @Matches(/^(\+20|0)?1[0-2,5]\d{8}$/, {
+    message: 'Please provide a valid Egyptian phone number (e.g., 01030321695 or +201030321695)'
+  })
   phone?: string;
 
   @ApiProperty({

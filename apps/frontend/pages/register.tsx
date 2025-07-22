@@ -182,7 +182,9 @@ export default function Register() {
 									onChange={(e) => setPhone(e.target.value)}
 									className="mt-2 w-full border-b-2 border-purple-300 focus:border-purple-600 focus:outline-none text-xl text-gray-800 placeholder-gray-400 transition duration-300"
 									required
-									placeholder="Enter your phone"
+									placeholder="01030321695"
+									pattern="(\+20|0)?1[0-2,5]\d{8}"
+									title="Please enter a valid Egyptian phone number (e.g., 01030321695)"
 								/>
 							</div>
 							<div>

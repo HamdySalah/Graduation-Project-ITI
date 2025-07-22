@@ -475,13 +475,27 @@ function NurseCard({ nurse }: { nurse: Nurse }) {
             }
           </p>
 
-          {/* View Profile Button */}
-          <Link
-            href={`/nurses/${nurse.id}`}
-            className="inline-flex items-center px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-lg font-medium transition-all duration-200"
-          >
-            View Profile
-          </Link>
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
+            <Link
+              href={`/nurses/${nurse.id}`}
+              className="inline-flex items-center justify-center px-4 py-2 bg-white bg-opacity-20 hover:bg-opacity-30 text-white rounded-lg font-medium transition-all duration-200"
+            >
+              View Profile
+            </Link>
+
+            {nurse.isAvailable && (
+              <Link
+                href={`/requests/create?nurseId=${nurse.id}`}
+                className="inline-flex items-center justify-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-all duration-200 shadow-lg"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Request Now
+              </Link>
+            )}
+          </div>
 
           {/* Additional Info - Hidden on mobile, shown on larger screens */}
           <div className="hidden md:block mt-6 space-y-2">
@@ -543,14 +557,17 @@ function NurseCard({ nurse }: { nurse: Nurse }) {
             </div>
           </div>
 
-          {/* Book Now Button - Mobile */}
+          {/* Request Now Button - Mobile */}
           {nurse.isAvailable && (
             <div className="absolute bottom-4 right-4 md:hidden">
               <Link
                 href={`/requests/create?nurseId=${nurse.id}`}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg"
+                className="flex items-center bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-medium shadow-lg transition-all duration-200"
               >
-                Book Now
+                <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Request
               </Link>
             </div>
           )}
@@ -579,14 +596,17 @@ function NurseCard({ nurse }: { nurse: Nurse }) {
           </div>
         )}
 
-        {/* Book Now Button - Mobile Bottom */}
+        {/* Request Now Button - Mobile Bottom */}
         {nurse.isAvailable && (
           <div className="pt-2">
             <Link
               href={`/requests/create?nurseId=${nurse.id}`}
-              className="block w-full text-center bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg font-medium"
+              className="flex items-center justify-center w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-medium shadow-lg transition-all duration-200"
             >
-              Book Now
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Request Now
             </Link>
           </div>
         )}
