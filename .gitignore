@@ -87,3 +87,4 @@ logs/
 ehthumbs.db
 Thumbs.db
 ".env" 
+"apps/backend/.env" 
