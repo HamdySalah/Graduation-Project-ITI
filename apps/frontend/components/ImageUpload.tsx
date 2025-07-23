@@ -83,18 +83,36 @@ export default function ImageUpload({
 
       // Upload files
       const uploadPromises = validFiles.map(async (file) => {
+        console.log('📸 Uploading file:', file.name, 'Size:', file.size, 'Type:', file.type);
+
         const formData = new FormData();
         formData.append('image', file);
-        
-        const response = await apiService.uploadImage(formData);
-        return response.data;
+
+        try {
+          const response = await apiService.uploadImage(formData);
+          console.log('📸 Upload response:', response);
+          return response.data;
+        } catch (error) {
+          console.error('📸 Upload error for file:', file.name, error);
+          throw error;
+        }
       });
 
       const uploadedImages = await Promise.all(uploadPromises);
       const newImages = [...images, ...uploadedImages];
       handleImagesUpdate(newImages);
     } catch (err: any) {
-      setError(err.message || 'Failed to upload images');
+      console.error('📸 Upload failed:', err);
+
+      // Extract detailed error message
+      let errorMessage = 'Failed to upload images';
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
     } finally {
       setUploading(false);
     }

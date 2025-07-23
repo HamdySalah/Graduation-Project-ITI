@@ -58,10 +58,16 @@ export class CreateRequestDto {
     minItems: 2,
     maxItems: 2,
   })
-  @IsArray()
-  @ArrayMinSize(2, { message: 'Coordinates must contain exactly 2 values' })
-  @ArrayMaxSize(2, { message: 'Coordinates must contain exactly 2 values' })
-  @IsNumber({}, { each: true, message: 'Coordinates must be valid numbers' })
+  @IsArray({ message: 'Coordinates must be an array' })
+  @ArrayMinSize(2, { message: 'Coordinates must contain exactly 2 values [longitude, latitude]' })
+  @ArrayMaxSize(2, { message: 'Coordinates must contain exactly 2 values [longitude, latitude]' })
+  @IsNumber({}, { each: true, message: 'Each coordinate must be a valid number' })
+  @Transform(({ value }) => {
+    if (Array.isArray(value)) {
+      return value.map(coord => parseFloat(coord));
+    }
+    return value;
+  })
   coordinates!: [number, number]; // [longitude, latitude]
 
   @ApiProperty({
@@ -90,8 +96,16 @@ export class CreateRequestDto {
     maximum: 24,
   })
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      const parsed = parseInt(value, 10);
+      return isNaN(parsed) ? value : parsed;
+    }
+    return value;
+  })
   @IsNumber({}, { message: 'Estimated duration must be a valid number' })
   @Min(1, { message: 'Estimated duration must be at least 1 hour' })
+  @Max(24, { message: 'Estimated duration cannot exceed 24 hours' })
   estimatedDuration?: number;
 
   @ApiPropertyOptional({
@@ -120,6 +134,13 @@ export class CreateRequestDto {
     minimum: 0,
   })
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      const parsed = parseFloat(value);
+      return isNaN(parsed) ? value : parsed;
+    }
+    return value;
+  })
   @IsNumber({}, { message: 'Budget must be a valid number' })
   @Min(0, { message: 'Budget cannot be negative' })
   budget?: number;
@@ -131,9 +152,8 @@ export class CreateRequestDto {
   @IsOptional()
   @IsString()
   @ValidateIf((o) => o.contactPhone && o.contactPhone.trim() !== '')
-  @Matches(/^(\+20|0)?1[0-2,5]\d{8}$/, {
-    message: 'Please provide a valid Egyptian phone number (e.g., 01030321695 or +201030321695)'
-  })
+  @MinLength(10, { message: 'Phone number must be at least 10 digits' })
+  @MaxLength(15, { message: 'Phone number must not exceed 15 digits' })
   contactPhone?: string;
 
   @ApiPropertyOptional({

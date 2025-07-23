@@ -23,8 +23,6 @@ import { ImageUploadService } from './image-upload.service';
 
 @ApiTags('Image Upload')
 @Controller('api/uploads')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth('JWT-auth')
 export class ImageUploadController {
   constructor(private readonly imageUploadService: ImageUploadService) {}
 
@@ -92,76 +90,109 @@ export class ImageUploadController {
     const uploadPath = path.join(process.cwd(), 'uploads', 'images');
     const exists = fs.existsSync(uploadPath);
 
+    // Try to create directory if it doesn't exist
+    if (!exists) {
+      try {
+        fs.mkdirSync(uploadPath, { recursive: true });
+      } catch (error) {
+        console.error('Failed to create upload directory:', error);
+      }
+    }
+
     return {
       success: true,
       message: 'Upload endpoint is working',
       uploadPath,
-      directoryExists: exists,
+      directoryExists: fs.existsSync(uploadPath),
       timestamp: new Date().toISOString(),
     };
   }
 
   @Post('image')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Upload single image' })
   @ApiConsumes('multipart/form-data')
   @ApiResponse({ status: 201, description: 'Image uploaded successfully' })
-  @UseInterceptors(FileInterceptor('image'))
   async uploadImage(
-    @UploadedFile() file: Express.Multer.File,
     @Request() req: any,
   ) {
-    console.log('📸 Upload image called with file:', file ? file.originalname : 'No file');
+    console.log('📸 Simple upload endpoint called');
 
-    if (!file) {
-      throw new BadRequestException('No file provided');
-    }
+    return new Promise((resolve, reject) => {
+      const multer = require('multer');
+      const uploadPath = path.join(process.cwd(), 'uploads', 'images');
 
-    try {
-      console.log('📸 File details:', {
-        originalname: file.originalname,
-        mimetype: file.mimetype,
-        size: file.size,
-        path: file.path
-      });
+      // Ensure directory exists
+      if (!fs.existsSync(uploadPath)) {
+        fs.mkdirSync(uploadPath, { recursive: true });
+      }
 
-      // Validate file
-      this.imageUploadService.validateImageFile(file);
-      console.log('📸 File validation passed');
-
-      // For now, skip image processing to avoid Sharp issues
-      console.log('📸 Skipping image processing for now...');
-      const processedFilename = path.basename(file.path);
-      console.log('📸 Using original filename:', processedFilename);
-
-      // Save metadata
-      await this.imageUploadService.saveImageMetadata({
-        filename: processedFilename,
-        originalName: file.originalname,
-        mimeType: file.mimetype,
-        size: file.size,
-        uploadedBy: req.user._id.toString(),
-      });
-
-      const result = {
-        success: true,
-        message: 'Image uploaded successfully',
-        data: {
-          filename: processedFilename,
-          originalName: file.originalname,
-          url: this.imageUploadService.getImageUrl(processedFilename),
-          size: file.size,
+      const storage = multer.diskStorage({
+        destination: (req, file, cb) => {
+          cb(null, uploadPath);
         },
-      };
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+          const ext = path.extname(file.originalname);
+          cb(null, `image-${uniqueSuffix}${ext}`);
+        },
+      });
 
-      console.log('📸 Upload successful:', result);
-      return result;
-    } catch (error) {
-      console.error('📸 Upload error:', error);
-      throw new BadRequestException(`Upload failed: ${error.message}`);
-    }
+      const upload = multer({
+        storage: storage,
+        limits: {
+          fileSize: 5 * 1024 * 1024, // 5MB
+        },
+        fileFilter: (req, file, cb) => {
+          const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+          if (allowedTypes.includes(file.mimetype)) {
+            cb(null, true);
+          } else {
+            cb(new Error('Only image files are allowed'), false);
+          }
+        },
+      }).single('image');
+
+      upload(req, req.res, (err) => {
+        if (err) {
+          console.error('📸 Multer error:', err);
+          reject(new BadRequestException(`Upload failed: ${err.message}`));
+          return;
+        }
+
+        const file = req.file;
+        if (!file) {
+          reject(new BadRequestException('No file provided'));
+          return;
+        }
+
+        console.log('📸 File uploaded successfully:', {
+          originalname: file.originalname,
+          filename: file.filename,
+          size: file.size,
+          mimetype: file.mimetype
+        });
+
+        const result = {
+          success: true,
+          message: 'Image uploaded successfully',
+          data: {
+            filename: file.filename,
+            originalName: file.originalname,
+            url: `/api/uploads/images/${file.filename}`,
+            size: file.size,
+          },
+        };
+
+        resolve(result);
+      });
+    });
   }
 
   @Get('images/:filename')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Get image by filename' })
   @ApiResponse({ status: 200, description: 'Image retrieved successfully' })
   @ApiResponse({ status: 404, description: 'Image not found' })

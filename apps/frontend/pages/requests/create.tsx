@@ -112,6 +112,16 @@ export default function CreateRequest() {
       };
 
       console.log('🚀 Submitting request:', requestData);
+
+      // Validate data before sending
+      console.log('🔍 Validating request data:');
+      console.log('- Title length:', requestData.title?.length);
+      console.log('- Description length:', requestData.description?.length);
+      console.log('- Coordinates:', requestData.coordinates);
+      console.log('- Service type:', requestData.serviceType);
+      console.log('- Scheduled date:', requestData.scheduledDate);
+      console.log('- Contact phone:', requestData.contactPhone);
+
       const result = await apiService.createRequest(requestData);
       console.log('✅ Request created successfully:', result);
 
@@ -144,7 +154,21 @@ export default function CreateRequest() {
       }
     } catch (err: any) {
       console.error('❌ Error creating request:', err);
-      setError(err.message || 'Failed to create request. Please try again.');
+      console.error('❌ Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status
+      });
+
+      // Extract detailed error message
+      let errorMessage = 'Failed to create request. Please try again.';
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

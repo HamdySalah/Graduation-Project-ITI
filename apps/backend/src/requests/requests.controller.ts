@@ -10,7 +10,22 @@ export class RequestsController {
   constructor(private readonly requestsService: RequestsService) {}
 
   @Post()
-  async createRequest(@Body(ValidationPipe) createRequestDto: CreateRequestDto, @Request() req : any) {
+  async createRequest(
+    @Body(new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      exceptionFactory: (errors) => {
+        const messages = errors.map(error => {
+          const constraints = error.constraints;
+          return constraints ? Object.values(constraints).join(', ') : 'Validation error';
+        });
+        console.log('❌ Validation errors:', messages);
+        return new Error(`Validation failed: ${messages.join('; ')}`);
+      }
+    })) createRequestDto: CreateRequestDto,
+    @Request() req : any
+  ) {
     console.log('🔍 Controller createRequest called');
     console.log('🔍 req.user:', req.user);
     console.log('🔍 createRequestDto:', createRequestDto);
