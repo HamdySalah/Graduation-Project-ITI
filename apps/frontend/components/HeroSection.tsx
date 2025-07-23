@@ -24,10 +24,10 @@ const HeroSection = () => {
             Find a Nurse
           </Link>
           <Link
-            href="/register"
+            href="/dashboard"
             className="bg-white text-blue-600 py-3 px-6 rounded-lg border-2 border-blue-600 shadow-md hover:bg-blue-50 hover:shadow-xl transition duration-300 transform hover:-translate-y-1"
           >
-            Register as a Nurse
+            Dashbored
           </Link>
         </div>
       </div>
