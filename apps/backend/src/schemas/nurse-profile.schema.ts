@@ -191,6 +191,12 @@ export class NurseProfile {
 
   @Prop()
   rejectionReason?: string;
+
+  @Prop()
+  rejectedAt?: Date;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
+  rejectedBy?: Types.ObjectId;
 }
 
 export const NurseProfileSchema = SchemaFactory.createForClass(NurseProfile);

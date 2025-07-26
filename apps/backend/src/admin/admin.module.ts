@@ -5,10 +5,12 @@ import { NursesModule } from '../nurses/nurses.module';
 import { User, UserSchema } from '../schemas/user.schema';
 import { PatientRequest, PatientRequestSchema } from '../schemas/patient-request.schema';
 import { NurseProfile, NurseProfileSchema } from '../schemas/nurse-profile.schema';
+import { EmailModule } from '../email/email.module';
 
 @Module({
   imports: [
     NursesModule,
+    EmailModule,
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: PatientRequest.name, schema: PatientRequestSchema },

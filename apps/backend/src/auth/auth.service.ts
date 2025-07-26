@@ -6,7 +6,7 @@ import * as bcrypt from 'bcryptjs';
 import { User, UserDocument, UserRole } from '../schemas/user.schema';
 import { NurseProfile, NurseProfileDocument } from '../schemas/nurse-profile.schema';
 import { RegisterDto, LoginDto, AuthResponseDto } from '../dto/auth.dto';
-// import { EmailService } from '../email/email.service'; // Temporarily disabled
+import { EmailService } from '../email/email.service';
 
 @Injectable()
 export class AuthService {
@@ -14,7 +14,7 @@ export class AuthService {
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(NurseProfile.name) private nurseProfileModel: Model<NurseProfileDocument>,
     private jwtService: JwtService,
-    // private emailService: EmailService, // Temporarily disabled
+    private emailService: EmailService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<AuthResponseDto> {
@@ -64,13 +64,14 @@ export class AuthService {
 
       await nurseProfile.save();
 
-      // Send welcome email to nurse - temporarily disabled
-      // try {
-      //   await this.emailService.sendWelcomeEmail(email, userData.name);
-      // } catch (error) {
-      //   // Log error but don't fail registration
-      //   console.error('Failed to send welcome email:', error);
-      // }
+      // Send welcome email to nurse
+      try {
+        await this.emailService.sendWelcomeEmail(email, userData.name);
+        console.log(`Welcome email sent to nurse: ${email}`);
+      } catch (error) {
+        // Log error but don't fail registration
+        console.error('Failed to send welcome email:', error);
+      }
     }
 
     // Generate JWT token

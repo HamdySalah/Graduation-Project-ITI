@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Approved - CareConnect</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8fafc;
+        }
+        
+        .container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .header .emoji {
+            font-size: 48px;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .content {
+            padding: 40px 30px;
+        }
+        
+        .content h2 {
+            color: #10b981;
+            margin-top: 0;
+            font-size: 24px;
+        }
+        
+        .content p {
+            margin-bottom: 20px;
+            font-size: 16px;
+            line-height: 1.7;
+        }
+        
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            text-decoration: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            margin: 20px 0;
+            transition: transform 0.2s ease;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .highlight {
+            background-color: #f0fdf4;
+            border-left: 4px solid #10b981;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .highlight h3 {
+            margin-top: 0;
+            color: #059669;
+            font-size: 18px;
+        }
+        
+        .features {
+            background-color: #f8fafc;
+            padding: 25px;
+            border-radius: 8px;
+            margin: 25px 0;
+        }
+        
+        .features h3 {
+            color: #374151;
+            margin-top: 0;
+            font-size: 18px;
+        }
+        
+        .features ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .features li {
+            margin-bottom: 8px;
+            color: #6b7280;
+        }
+        
+        .footer {
+            background-color: #f9fafb;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .footer p {
+            margin: 5px 0;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        .social-links {
+            margin: 20px 0;
+        }
+        
+        .social-links a {
+            display: inline-block;
+            margin: 0 10px;
+            color: #6b7280;
+            text-decoration: none;
+        }
+        
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            
+            .header, .content, .footer {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .button {
+                display: block;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <span class="emoji">🎉</span>
+            <h1>Congratulations!</h1>
+            <p style="margin: 10px 0 0 0; font-size: 18px; opacity: 0.9;">Your application has been approved</p>
+        </div>
+        
+        <div class="content">
+            <h2>Welcome to CareConnect, {{name}}!</h2>
+            
+            <p>We're thrilled to inform you that your nurse application has been <strong>approved</strong>! You are now officially part of the CareConnect healthcare community.</p>
+            
+            <div class="highlight">
+                <h3>🏥 What's Next?</h3>
+                <p>You can now access your nurse dashboard and start connecting with patients who need your care. Your profile is live and visible to patients in your area.</p>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="{{dashboardUrl}}" class="button">Access Your Dashboard</a>
+            </div>
+            
+            <div class="features">
+                <h3>🌟 What You Can Do Now:</h3>
+                <ul>
+                    <li><strong>Manage Your Profile:</strong> Update your availability, rates, and services</li>
+                    <li><strong>Receive Requests:</strong> Get notified when patients request your services</li>
+                    <li><strong>Schedule Appointments:</strong> Coordinate care with your patients</li>
+                    <li><strong>Track Earnings:</strong> Monitor your income and payment history</li>
+                    <li><strong>Build Reviews:</strong> Grow your reputation through patient feedback</li>
+                </ul>
+            </div>
+            
+            <p>If you have any questions or need assistance getting started, our support team is here to help. You can reach us by replying to this email or through the help section in your dashboard.</p>
+            
+            <p>Thank you for choosing CareConnect to advance your nursing career. We're excited to see the positive impact you'll make in our community!</p>
+            
+            <p style="margin-top: 30px;">
+                <strong>Best regards,</strong><br>
+                The CareConnect Team
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p><strong>CareConnect</strong> - Connecting Care, Empowering Health</p>
+            <p>This email was sent to {{email}}</p>
+            <div class="social-links">
+                <a href="{{frontendUrl}}">Visit Website</a> |
+                <a href="{{frontendUrl}}/help">Help Center</a> |
+                <a href="{{frontendUrl}}/contact">Contact Support</a>
+            </div>
+            <p style="font-size: 12px; color: #9ca3af; margin-top: 20px;">
+                © 2024 CareConnect. All rights reserved.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

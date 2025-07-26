@@ -39,7 +39,7 @@ export class EmailService {
     try {
       await this.mailerService.sendMail({
         to: email,
-        subject: 'Welcome to Nurse Platform!',
+        subject: 'Welcome to CareConnect - Nurse Registration Successful! 🎉',
         template: 'welcome',
         context: {
           name,
@@ -51,6 +51,49 @@ export class EmailService {
       this.logger.log(`Welcome email sent to ${email}`);
     } catch (error) {
       this.logger.error(`Failed to send welcome email to ${email}:`, error);
+    }
+  }
+
+  async sendApprovalEmail(email: string, name: string): Promise<void> {
+    try {
+      await this.mailerService.sendMail({
+        to: email,
+        subject: '🎉 Congratulations! Your Nurse Application has been Approved',
+        template: 'approval',
+        context: {
+          name,
+          email,
+          frontendUrl: this.configService.get<string>('FRONTEND_URL'),
+          dashboardUrl: `${this.configService.get<string>('FRONTEND_URL')}/nurse/dashboard`,
+        },
+      });
+
+      this.logger.log(`Approval email sent to ${email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send approval email to ${email}:`, error);
+      throw new Error('Failed to send approval email');
+    }
+  }
+
+  async sendRejectionEmail(email: string, name: string, reason?: string): Promise<void> {
+    try {
+      await this.mailerService.sendMail({
+        to: email,
+        subject: 'Update on Your Nurse Application - CareConnect',
+        template: 'rejection',
+        context: {
+          name,
+          email,
+          reason: reason || 'Please contact support for more information.',
+          frontendUrl: this.configService.get<string>('FRONTEND_URL'),
+          supportEmail: this.configService.get<string>('MAIL_USER'),
+        },
+      });
+
+      this.logger.log(`Rejection email sent to ${email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send rejection email to ${email}:`, error);
+      throw new Error('Failed to send rejection email');
     }
   }
 }

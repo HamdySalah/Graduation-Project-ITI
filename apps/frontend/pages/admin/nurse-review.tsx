@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../lib/auth';
-import Layout from '../../components/Layout';
+import AdminLayout from '../../components/admin/AdminLayout';
 import { apiService } from '../../lib/api';
 
 const APPROVAL_CHECKLIST = [
@@ -189,7 +189,7 @@ export default function NurseReview() {
       }
       
       setTimeout(() => {
-        router.push('/dashboard');
+        router.push('/admin/dashboard');
       }, 2000);
       
     } catch (err: any) {
@@ -217,7 +217,7 @@ export default function NurseReview() {
       }
       
       setTimeout(() => {
-        router.push('/dashboard');
+        router.push('/admin/dashboard');
       }, 2000);
       
     } catch (err: any) {
@@ -239,17 +239,17 @@ export default function NurseReview() {
 
   if (loading || loadingNurse) {
     return (
-      <Layout title="Loading...">
+      <AdminLayout title="Loading...">
         <div className="flex items-center justify-center min-h-screen">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
         </div>
-      </Layout>
+      </AdminLayout>
     );
   }
 
   if (!nurse) {
     return (
-      <Layout title="Nurse Not Found">
+      <AdminLayout title="Nurse Not Found">
         <div className="text-center py-12">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Nurse Not Found</h1>
           <p className="text-gray-600 mb-4">The requested nurse profile could not be found.</p>
@@ -260,18 +260,18 @@ export default function NurseReview() {
           )}
           <p className="text-gray-500 text-sm mb-8">Nurse ID: {id}</p>
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.push('/admin/dashboard')}
             className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
           >
             Back to Dashboard
           </button>
         </div>
-      </Layout>
+      </AdminLayout>
     );
   }
 
   return (
-    <Layout title="Nurse Approval">
+    <AdminLayout title="Nurse Approval">
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Nurse Details Section */}
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 flex flex-col md:flex-row gap-8 items-center">
@@ -300,26 +300,94 @@ export default function NurseReview() {
           <div className="flex gap-6 flex-wrap">
             {nurse.licenseDocument && (
               <div className="w-40 h-40 bg-gray-100 rounded shadow flex flex-col items-center justify-center">
-                <img src={nurse.licenseDocument.fileUrl} alt="License" className="h-24 mb-2" />
-                <div className="text-xs text-gray-700">License</div>
+                {nurse.licenseDocument.fileType?.includes('pdf') ? (
+                  <a href={nurse.licenseDocument.fileUrl} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center">
+                    <svg className="w-24 h-24 text-red-500 mb-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                    </svg>
+                    <div className="text-xs text-blue-600 underline">View License PDF</div>
+                  </a>
+                ) : (
+                  <>
+                    <img 
+                      src={nurse.licenseDocument.fileUrl} 
+                      alt="License" 
+                      className="h-24 mb-2 object-contain"
+                      onClick={() => window.open(nurse.licenseDocument.fileUrl, '_blank')}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <div className="text-xs text-gray-700">License</div>
+                  </>
+                )}
               </div>
             )}
             {nurse.resumeDocument && (
               <div className="w-40 h-40 bg-gray-100 rounded shadow flex flex-col items-center justify-center">
-                <img src={nurse.resumeDocument.fileUrl} alt="Resume" className="h-24 mb-2" />
-                <div className="text-xs text-gray-700">Resume</div>
+                {nurse.resumeDocument.fileType?.includes('pdf') ? (
+                  <a href={nurse.resumeDocument.fileUrl} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center">
+                    <svg className="w-24 h-24 text-red-500 mb-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                    </svg>
+                    <div className="text-xs text-blue-600 underline">View Resume PDF</div>
+                  </a>
+                ) : (
+                  <>
+                    <img 
+                      src={nurse.resumeDocument.fileUrl} 
+                      alt="Resume" 
+                      className="h-24 mb-2 object-contain"
+                      onClick={() => window.open(nurse.resumeDocument.fileUrl, '_blank')}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <div className="text-xs text-gray-700">Resume</div>
+                  </>
+                )}
               </div>
             )}
             {nurse.backgroundCheckDocument && (
               <div className="w-40 h-40 bg-gray-100 rounded shadow flex flex-col items-center justify-center">
-                <img src={nurse.backgroundCheckDocument.fileUrl} alt="Background Check" className="h-24 mb-2" />
-                <div className="text-xs text-gray-700">Background Check</div>
+                {nurse.backgroundCheckDocument.fileType?.includes('pdf') ? (
+                  <a href={nurse.backgroundCheckDocument.fileUrl} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center">
+                    <svg className="w-24 h-24 text-red-500 mb-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                    </svg>
+                    <div className="text-xs text-blue-600 underline">View Background Check PDF</div>
+                  </a>
+                ) : (
+                  <>
+                    <img 
+                      src={nurse.backgroundCheckDocument.fileUrl} 
+                      alt="Background Check" 
+                      className="h-24 mb-2 object-contain"
+                      onClick={() => window.open(nurse.backgroundCheckDocument.fileUrl, '_blank')}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <div className="text-xs text-gray-700">Background Check</div>
+                  </>
+                )}
               </div>
             )}
             {nurse.additionalDocuments?.map((doc, idx) => (
               <div key={idx} className="w-40 h-40 bg-gray-100 rounded shadow flex flex-col items-center justify-center">
-                <img src={doc.fileUrl} alt={doc.documentType || doc.originalName} className="h-24 mb-2" />
-                <div className="text-xs text-gray-700">{doc.documentType || doc.originalName}</div>
+                {doc.fileType?.includes('pdf') ? (
+                  <a href={doc.fileUrl} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center">
+                    <svg className="w-24 h-24 text-red-500 mb-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                    </svg>
+                    <div className="text-xs text-blue-600 underline">View {doc.documentType || 'Document'}</div>
+                  </a>
+                ) : (
+                  <>
+                    <img 
+                      src={doc.fileUrl} 
+                      alt={doc.documentType || doc.originalName} 
+                      className="h-24 mb-2 object-contain"
+                      onClick={() => window.open(doc.fileUrl, '_blank')}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <div className="text-xs text-gray-700">{doc.documentType || doc.originalName}</div>
+                  </>
+                )}
               </div>
             ))}
           </div>
@@ -372,6 +440,6 @@ export default function NurseReview() {
           </div>
         </div>
       </div>
-    </Layout>
+    </AdminLayout>
   );
 }

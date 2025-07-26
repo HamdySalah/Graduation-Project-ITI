@@ -109,6 +109,19 @@ export class PatientRequest {
   @Prop()
   cancellationReason?: string;
 
+  // Completion tracking
+  @Prop({ default: false })
+  nurseCompleted?: boolean;
+
+  @Prop()
+  nurseCompletedAt?: Date;
+
+  @Prop({ default: false })
+  patientCompleted?: boolean;
+
+  @Prop()
+  patientCompletedAt?: Date;
+
   // Timestamps (automatically added by Mongoose)
   createdAt?: Date;
   updatedAt?: Date;

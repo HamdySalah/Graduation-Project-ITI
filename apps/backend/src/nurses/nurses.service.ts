@@ -234,6 +234,47 @@ export class NursesService {
     };
   }
 
+  async rejectNurse(nurseId: string, adminUser: UserDocument, rejectionReason?: string) {
+    // Check if admin has permission
+    if (adminUser.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('Only admins can reject nurses');
+    }
+
+    // Find the nurse
+    const nurse = await this.userModel.findById(nurseId).exec();
+    if (!nurse) {
+      throw new NotFoundException('Nurse not found');
+    }
+
+    if (nurse.role !== UserRole.NURSE) {
+      throw new ForbiddenException('User is not a nurse');
+    }
+
+    // Update nurse status to rejected
+    nurse.status = UserStatus.REJECTED;
+    await nurse.save();
+
+    // Update nurse profile with rejection details
+    const nurseProfile = await this.nurseProfileModel.findOne({ userId: nurseId }).exec();
+    if (nurseProfile) {
+      nurseProfile.rejectedAt = new Date();
+      nurseProfile.rejectedBy = adminUser._id;
+      nurseProfile.rejectionReason = rejectionReason || 'No reason provided';
+      await nurseProfile.save();
+    }
+
+    return {
+      message: 'Nurse application rejected successfully',
+      nurse: {
+        id: nurse._id,
+        name: nurse.name,
+        email: nurse.email,
+        status: nurse.status,
+        rejectionReason: rejectionReason,
+      },
+    };
+  }
+
   async toggleAvailability(user: UserDocument) {
     if (user.role !== UserRole.NURSE) {
       throw new ForbiddenException('Only nurses can toggle availability');

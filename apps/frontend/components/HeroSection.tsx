@@ -3,7 +3,7 @@ import Link from 'next/link';
 const HeroSection = () => {
   return (
     <section
-      className="bg-cover bg-center py-24 text-center relative"
+      className="bg-cover bg-center py-16 text-center relative"
       style={{ backgroundImage: "url('/imagenurse.jpg')" }}
     >
       {/* Overlay for better text readability */}
@@ -27,7 +27,7 @@ const HeroSection = () => {
             href="/dashboard"
             className="bg-white text-blue-600 py-3 px-6 rounded-lg border-2 border-blue-600 shadow-md hover:bg-blue-50 hover:shadow-xl transition duration-300 transform hover:-translate-y-1"
           >
-            Dashbored
+            Dashboard
           </Link>
         </div>
       </div>

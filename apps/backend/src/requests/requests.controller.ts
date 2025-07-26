@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Patch, Body, Param, Query, UseGuards, Request, ValidationPipe } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Put, Body, Param, Query, UseGuards, Request, ValidationPipe } from '@nestjs/common';
 import { RequestsService } from './requests.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateRequestDto, UpdateRequestStatusDto } from '../dto/request.dto';
@@ -54,5 +54,30 @@ export class RequestsController {
     @Request() req : any
   ) {
     return this.requestsService.updateRequestStatus(requestId, updateStatusDto, req.user);
+  }
+
+  @Put(':id/status')
+  async updateRequestStatusPut(
+    @Param('id') requestId: string,
+    @Body() body: { status: string },
+    @Request() req : any
+  ) {
+    return this.requestsService.updateRequestStatus(requestId, { status: body.status as RequestStatus }, req.user);
+  }
+
+  @Put(':id/complete-nurse')
+  async markCompletedByNurse(
+    @Param('id') requestId: string,
+    @Request() req : any
+  ) {
+    return this.requestsService.markCompletedByNurse(requestId, req.user);
+  }
+
+  @Put(':id/complete-patient')
+  async markCompletedByPatient(
+    @Param('id') requestId: string,
+    @Request() req : any
+  ) {
+    return this.requestsService.markCompletedByPatient(requestId, req.user);
   }
 }

@@ -345,4 +345,76 @@ export class RequestsService {
 
     return stats;
   }
+
+  async markCompletedByNurse(requestId: string, user: UserDocument) {
+    // Find the request
+    const request = await this.requestModel.findById(requestId);
+    if (!request) {
+      throw new NotFoundException('Request not found');
+    }
+
+    // Only nurses can mark as completed by nurse
+    if (user.role !== UserRole.NURSE) {
+      throw new ForbiddenException('Only nurses can mark requests as completed by nurse');
+    }
+
+    // Request must be in progress
+    if (request.status !== RequestStatus.IN_PROGRESS) {
+      throw new BadRequestException('Request must be in progress to be marked as completed');
+    }
+
+    // Mark as completed by nurse
+    request.nurseCompleted = true;
+    request.nurseCompletedAt = new Date();
+
+    // If both nurse and patient have marked as completed, set status to completed
+    if (request.patientCompleted && request.nurseCompleted) {
+      request.status = RequestStatus.COMPLETED;
+      request.completedAt = new Date();
+    }
+
+    await request.save();
+
+    return {
+      success: true,
+      message: 'Request marked as completed by nurse',
+      request: request
+    };
+  }
+
+  async markCompletedByPatient(requestId: string, user: UserDocument) {
+    // Find the request
+    const request = await this.requestModel.findById(requestId);
+    if (!request) {
+      throw new NotFoundException('Request not found');
+    }
+
+    // Only the patient who created the request can mark it as completed
+    if (user.role !== UserRole.PATIENT || !this.compareObjectIds(request.patientId, user._id)) {
+      throw new ForbiddenException('Only the patient who created this request can mark it as completed');
+    }
+
+    // Request must be in progress
+    if (request.status !== RequestStatus.IN_PROGRESS) {
+      throw new BadRequestException('Request must be in progress to be marked as completed');
+    }
+
+    // Mark as completed by patient
+    request.patientCompleted = true;
+    request.patientCompletedAt = new Date();
+
+    // If both nurse and patient have marked as completed, set status to completed
+    if (request.patientCompleted && request.nurseCompleted) {
+      request.status = RequestStatus.COMPLETED;
+      request.completedAt = new Date();
+    }
+
+    await request.save();
+
+    return {
+      success: true,
+      message: 'Request marked as completed by patient',
+      request: request
+    };
+  }
 }

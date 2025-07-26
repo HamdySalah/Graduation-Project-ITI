@@ -17,6 +17,7 @@ import { Model } from 'mongoose';
 import { User } from '../schemas/user.schema';
 import { PatientRequest } from '../schemas/patient-request.schema';
 import { NurseProfile } from '../schemas/nurse-profile.schema';
+import { EmailService } from '../email/email.service';
 
 @ApiTags('Admin')
 @Controller('api/admin')
@@ -30,6 +31,7 @@ export class AdminController {
     @InjectModel(User.name) private userModel: Model<any>,
     @InjectModel(PatientRequest.name) private requestModel: Model<any>,
     @InjectModel(NurseProfile.name) private nurseProfileModel: Model<any>,
+    private readonly emailService: EmailService,
   ) {}
 
   @Get('pending-nurses')
@@ -91,9 +93,28 @@ export class AdminController {
     description: 'Only admins can verify nurses'
   })
   async verifyNurse(@Param('nurseId') nurseId: string, @Request() req: any) {
-    // For now, create a mock admin user since we removed auth
-    const mockAdmin = { role: 'admin', _id: 'admin-id' };
-    return this.nursesService.verifyNurse(nurseId, mockAdmin as any);
+    try {
+      // For now, create a mock admin user since we removed auth
+      const mockAdmin = { role: 'admin', _id: 'admin-id' };
+      const result = await this.nursesService.verifyNurse(nurseId, mockAdmin as any);
+
+      // Get nurse details for email
+      const nurse = await this.userModel.findById(nurseId).exec();
+      if (nurse && nurse.email && nurse.name) {
+        try {
+          await this.emailService.sendApprovalEmail(nurse.email, nurse.name);
+          console.log(`Approval email sent to nurse: ${nurse.email}`);
+        } catch (emailError) {
+          console.error('Failed to send approval email:', emailError);
+          // Don't fail the approval if email fails
+        }
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error in verifyNurse:', error);
+      throw error;
+    }
   }
 
   @Post('reject-nurse/:nurseId')
@@ -116,10 +137,33 @@ export class AdminController {
   @ApiForbiddenResponse({
     description: 'Only admins can reject nurses'
   })
-  async rejectNurse(@Param('nurseId') nurseId: string, @Request() req: any) {
-    // For now, create a mock admin user since we removed auth
-    const mockAdmin = { role: 'admin', _id: 'admin-id' };
-    return this.nursesService.rejectNurse(nurseId, mockAdmin as any);
+  async rejectNurse(@Param('nurseId') nurseId: string, @Body() body: { rejectionReason?: string }, @Request() req: any) {
+    try {
+      // For now, create a mock admin user since we removed auth
+      const mockAdmin = { role: 'admin', _id: 'admin-id' };
+      const result = await this.nursesService.rejectNurse(nurseId, mockAdmin as any, body.rejectionReason);
+
+      // Get nurse details for email
+      const nurse = await this.userModel.findById(nurseId).exec();
+      if (nurse && nurse.email && nurse.name) {
+        try {
+          await this.emailService.sendRejectionEmail(
+            nurse.email,
+            nurse.name,
+            body.rejectionReason || 'Please contact support for more information.'
+          );
+          console.log(`Rejection email sent to nurse: ${nurse.email}`);
+        } catch (emailError) {
+          console.error('Failed to send rejection email:', emailError);
+          // Don't fail the rejection if email fails
+        }
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error in rejectNurse:', error);
+      throw error;
+    }
   }
 
   @Get('stats')

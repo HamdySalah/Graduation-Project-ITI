@@ -14,9 +14,10 @@ export default function Login() {
   // Redirect if already logged in
   useEffect(() => {
     if (user) {
-      router.push('/dashboard');
+      // توجيه جميع المستخدمين إلى الصفحة الرئيسية
+      window.location.href = '/';
     }
-  }, [user, router]);
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,8 +26,7 @@ export default function Login() {
 
     try {
       await login(email, password);
-      // Redirect to dashboard after successful login
-      router.push('/dashboard');
+      // التوجيه يتم الآن في دالة login نفسها
     } catch (err: any) {
       console.error('Login error in component:', err);
 

@@ -23,7 +23,6 @@ export default function Home() {
   return (
     <ErrorBoundary>
       <div className="scroll-smooth">
-        <Navbar />
         <section id="home">
           <HeroSection />
         </section>

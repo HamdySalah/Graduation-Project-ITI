@@ -283,6 +283,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(userData);
       saveUserToStorage(userData);
       console.log('Login successful, token and user data stored:', token.substring(0, 20) + '...');
+      
+      // Redirect all users to the homepage regardless of their role
+      window.location.href = '/';
     } catch (error) {
       console.error('Login failed:', error);
       // Clear any existing token on login failure
