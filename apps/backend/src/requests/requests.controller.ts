@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Patch, Put, Body, Param, Query, UseGuards, Request, ValidationPipe } from '@nestjs/common';
 import { RequestsService } from './requests.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CreateRequestDto, UpdateRequestStatusDto } from '../dto/request.dto';
+import { CreateRequestDto, UpdateRequestStatusDto, UpdateRequestDto } from '../dto/request.dto';
 import { RequestStatus } from '../schemas/patient-request.schema';
 
 @Controller('api/requests')
@@ -45,6 +45,30 @@ export class RequestsController {
   @Get(':id')
   async getRequestById(@Param('id') requestId: string, @Request() req : any) {
     return this.requestsService.getRequestById(requestId, req.user);
+  }
+
+  @Put(':id')
+  async updateRequest(
+    @Param('id') requestId: string,
+    @Body(new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      exceptionFactory: (errors) => {
+        const messages = errors.map(error => {
+          const constraints = error.constraints;
+          return constraints ? Object.values(constraints).join(', ') : 'Validation error';
+        });
+        console.log('❌ Validation errors:', messages);
+        return new Error(`Validation failed: ${messages.join('; ')}`);
+      }
+    })) updateRequestDto: UpdateRequestDto,
+    @Request() req : any
+  ) {
+    console.log('🔍 Controller updateRequest called');
+    console.log('🔍 req.user:', req.user);
+    console.log('🔍 updateRequestDto:', updateRequestDto);
+    return this.requestsService.updateRequest(requestId, updateRequestDto, req.user);
   }
 
   @Patch(':id/status')

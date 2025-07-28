@@ -13,7 +13,7 @@ export default function VerificationProcess() {
           <p className="text-gray-700 mb-2">Every nurse on NurseConnect undergoes a rigorous verification process before they can accept appointments.</p>
           <ul className="list-disc list-inside text-gray-700 mb-2 pl-2">
             <li>License validation with state boards</li>
-            <li>ID verification and background checks</li>
+            <li>ID verification and Experience or Recommendation</li>
             <li>Certification and education confirmation</li>
             <li>Skills assessment and specialization validation</li>
           </ul>

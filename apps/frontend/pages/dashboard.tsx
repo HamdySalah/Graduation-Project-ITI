@@ -6,6 +6,10 @@ import { apiService } from '../lib/api';
 import SessionStatus from '../components/SessionStatus';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { navigationUtils } from '../lib/navigation';
+import PatientLayout from '../components/PatientLayout';
+import ErrorDisplay from '../components/ErrorDisplay';
+import { CustomError, ErrorCode } from '../lib/errors';
+import { errorHandler } from '../lib/errorHandler';
 
 interface DashboardStats {
   totalRequests?: number;
@@ -92,7 +96,7 @@ export default function Dashboard() {
   const [recentRequests, setRecentRequests] = useState<Request[]>([]);
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<CustomError | string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
 
   const loadDashboardData = async () => {
@@ -120,12 +124,14 @@ export default function Dashboard() {
         const [statsData, requestsData] = await Promise.all([
           apiService.getDashboardStats().catch((err) => {
             console.warn('Dashboard stats failed:', err);
-            setError('Failed to load dashboard statistics. Please refresh the page.');
+            const customError = errorHandler.handleError(err);
+            setError(customError);
             return {};
           }),
           apiService.getRequests().catch((err) => {
             console.warn('Requests failed:', err);
-            setError('Failed to load recent requests. Please refresh the page.');
+            const customError = errorHandler.handleError(err);
+            setError(customError);
             return [];
           })
         ]);
@@ -208,11 +214,47 @@ export default function Dashboard() {
               <p className="text-gray-600 mt-2">You need to be logged in to access your dashboard.</p>
             </div>
             <button
+              type="button"
               onClick={() => window.location.href = '/login'}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
             >
               Go to Login
             </button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Check if nurse account is rejected
+  if (user.role === 'nurse' && user.status === 'rejected') {
+    const rejectedError = new CustomError(
+      ErrorCode.ACCOUNT_SUSPENDED,
+      'Account has been rejected',
+      'Your nurse account has been rejected. Please contact support for more information.',
+      403
+    );
+
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="max-w-md w-full">
+            <ErrorDisplay
+              error={rejectedError}
+              onDismiss={() => {
+                // Redirect to account rejected page
+                window.location.href = '/account-rejected';
+              }}
+            />
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={() => window.location.href = '/account-rejected'}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+              >
+                View Account Status →
+              </button>
+            </div>
           </div>
         </div>
       </Layout>
@@ -303,9 +345,15 @@ export default function Dashboard() {
               <div className="max-w-6xl">
                 {/* Error Display */}
                 {error && (
-                  <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
-                    <p className="text-red-600">{error}</p>
-                  </div>
+                  <ErrorDisplay
+                    error={error}
+                    className="mb-6"
+                    onDismiss={() => setError('')}
+                    onRetry={() => {
+                      setError('');
+                      loadDashboardData();
+                    }}
+                  />
                 )}
 
                 {/* Success Message */}
@@ -532,90 +580,20 @@ export default function Dashboard() {
   if (user.role === 'patient') {
     return (
       <ErrorBoundary>
-        <div className="min-h-screen bg-gray-50 flex">
-          {/* Sidebar */}
-          <div className="w-64 bg-white shadow-sm border-r border-gray-200">
-            <div className="p-6">
-              {/* User Profile Section */}
-              <div className="flex items-center space-x-3 mb-8">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
-                  {user.name?.charAt(0) || 'P'}
-                </div>
-                <div>
-                  <h2 className="font-semibold text-gray-900">CareConnect</h2>
-                  <p className="text-sm text-gray-600">Patient</p>
-                </div>
-              </div>
-
-              {/* Navigation Items */}
-              <nav className="space-y-1">
-                <a
-                  href="/dashboard"
-                  className="flex items-center space-x-3 px-3 py-3 text-sm font-medium bg-gray-100 text-gray-900 rounded-lg"
-                >
-                  <span className="text-lg">🏠</span>
-                  <span>Dashboard</span>
-                </a>
-                <a
-                  href="/requests/create"
-                  className="flex items-center space-x-3 px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <span className="text-lg">➕</span>
-                  <span>New Request</span>
-                </a>
-                <a
-                  href="/requests"
-                  className="flex items-center space-x-3 px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <span className="text-lg">📋</span>
-                  <span>My Requests</span>
-                </a>
-                <a
-                  href="/nurses"
-                  className="flex items-center space-x-3 px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <span className="text-lg">👩‍⚕️</span>
-                  <span>Find Nurses</span>
-                </a>
-                <a
-                  href="/settings"
-                  className="flex items-center space-x-3 px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                >
-                  <span className="text-lg">⚙️</span>
-                  <span>Settings</span>
-                </a>
-              </nav>
-
-              {/* Logout Button */}
-              <div className="mt-8 pt-8 border-t border-gray-200">
-                <button
-                  onClick={() => {
-                    window.location.href = '/login';
-                  }}
-                  className="flex items-center space-x-3 px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors w-full"
-                >
-                  <span className="text-lg">🚪</span>
-                  <span>Log out</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="flex-1 bg-white">
-            <div className="p-8">
-              <div className="max-w-6xl">
-                {/* Error Display */}
-                {error && (
-                  <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
-                    <p className="text-red-600">{error}</p>
-                  </div>
-                )}
-
-                {/* Header */}
-                <div className="mb-8">
-                  <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-                </div>
+        <PatientLayout activeItem="dashboard" title="Dashboard">
+          <div className="max-w-6xl">
+            {/* Error Display */}
+            {error && (
+              <ErrorDisplay
+                error={error}
+                className="mb-6"
+                onDismiss={() => setError('')}
+                onRetry={() => {
+                  setError('');
+                  loadDashboardData();
+                }}
+              />
+            )}
 
                 {/* Quick Actions */}
                 <div className="mb-8">
@@ -724,10 +702,8 @@ export default function Dashboard() {
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
           </div>
-        </div>
+        </PatientLayout>
       </ErrorBoundary>
     );
   }
@@ -957,9 +933,15 @@ export default function Dashboard() {
             <div className="max-w-6xl">
               {/* Error Display */}
               {error && (
-                <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-6">
-                  <p className="text-red-600">{error}</p>
-                </div>
+                <ErrorDisplay
+                  error={error}
+                  className="mb-6"
+                  onDismiss={() => setError('')}
+                  onRetry={() => {
+                    setError('');
+                    loadDashboardData();
+                  }}
+                />
               )}
 
               {/* Header */}

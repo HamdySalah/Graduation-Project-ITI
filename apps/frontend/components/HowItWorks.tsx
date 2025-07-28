@@ -25,7 +25,7 @@ export default function HowItWorks() {
   return (
     <section className="py-12 bg-white">
       <div className="max-w-3xl mx-auto text-center mb-3">
-        <h2 className="text-4xl font-extrabold mb-2 tracking-tight text-black">How CareConnect Works</h2>
+        <h2 className="text-4xl font-extrabold mb-2 tracking-tight text-black">How 3Naya Works</h2>
         <p className="text-gray-600 text-lg mb-10">Simple steps to get the home healthcare you need</p>
       </div>
       <div className="flex flex-col md:flex-row gap-6 max-w-5xl mx-auto justify-center items-stretch">

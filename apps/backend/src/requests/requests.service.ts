@@ -2,13 +2,16 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException 
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { PatientRequest, PatientRequestDocument, RequestStatus } from '../schemas/patient-request.schema';
-import { UserDocument, UserRole } from '../schemas/user.schema';
-import { CreateRequestDto, UpdateRequestStatusDto } from '../dto/request.dto';
+import { User, UserDocument, UserRole } from '../schemas/user.schema';
+import { CreateRequestDto, UpdateRequestStatusDto, UpdateRequestDto } from '../dto/request.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class RequestsService {
   constructor(
     @InjectModel(PatientRequest.name) private requestModel: Model<PatientRequestDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    private notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -208,6 +211,115 @@ export class RequestsService {
     };
   }
 
+  async updateRequest(requestId: string, updateRequestDto: UpdateRequestDto, user: UserDocument) {
+    console.log('🔍 Service updateRequest called with user:', user);
+    console.log('🔍 updateRequestDto:', updateRequestDto);
+
+    const request = await this.requestModel.findById(requestId).exec();
+    if (!request) {
+      throw new NotFoundException('Request not found');
+    }
+
+    // Only the patient who created the request can edit it
+    if (user.role !== UserRole.PATIENT || !this.compareObjectIds(request.patientId, user._id)) {
+      throw new ForbiddenException('You can only edit your own requests');
+    }
+
+    // Only allow editing of pending requests
+    if (request.status !== RequestStatus.PENDING) {
+      throw new BadRequestException('Only pending requests can be edited');
+    }
+
+    // Prepare update data
+    const updateData: any = {};
+
+    // Update basic fields
+    if (updateRequestDto.title !== undefined) {
+      updateData.title = updateRequestDto.title;
+    }
+    if (updateRequestDto.description !== undefined) {
+      updateData.description = updateRequestDto.description;
+    }
+    if (updateRequestDto.serviceType !== undefined) {
+      updateData.serviceType = updateRequestDto.serviceType;
+    }
+    if (updateRequestDto.address !== undefined) {
+      updateData.address = updateRequestDto.address;
+    }
+    if (updateRequestDto.estimatedDuration !== undefined) {
+      updateData.estimatedDuration = updateRequestDto.estimatedDuration;
+    }
+    if (updateRequestDto.urgencyLevel !== undefined) {
+      updateData.urgencyLevel = updateRequestDto.urgencyLevel;
+    }
+    if (updateRequestDto.specialRequirements !== undefined) {
+      updateData.specialRequirements = updateRequestDto.specialRequirements;
+    }
+    if (updateRequestDto.budget !== undefined) {
+      updateData.budget = updateRequestDto.budget;
+    }
+    if (updateRequestDto.contactPhone !== undefined) {
+      updateData.contactPhone = updateRequestDto.contactPhone;
+    }
+    if (updateRequestDto.notes !== undefined) {
+      updateData.notes = updateRequestDto.notes;
+    }
+
+    // Update location if coordinates provided
+    if (updateRequestDto.coordinates) {
+      updateData.location = {
+        type: 'Point',
+        coordinates: updateRequestDto.coordinates,
+      };
+    }
+
+    // Update scheduled date
+    if (updateRequestDto.scheduledDate) {
+      updateData.scheduledDate = new Date(updateRequestDto.scheduledDate);
+    }
+
+    // Update the request
+    const updatedRequest = await this.requestModel.findByIdAndUpdate(
+      requestId,
+      updateData,
+      { new: true }
+    ).populate('patientId', '-password').exec();
+
+    if (!updatedRequest) {
+      throw new NotFoundException('Request not found after update');
+    }
+
+    console.log('✅ Request updated successfully:', updatedRequest._id);
+
+    return {
+      message: 'Request updated successfully',
+      request: {
+        id: updatedRequest._id,
+        title: updatedRequest.title,
+        description: updatedRequest.description,
+        serviceType: updatedRequest.serviceType,
+        status: updatedRequest.status,
+        location: updatedRequest.location,
+        address: updatedRequest.address,
+        scheduledDate: updatedRequest.scheduledDate,
+        estimatedDuration: updatedRequest.estimatedDuration,
+        urgencyLevel: updatedRequest.urgencyLevel,
+        specialRequirements: updatedRequest.specialRequirements,
+        budget: updatedRequest.budget,
+        contactPhone: updatedRequest.contactPhone,
+        notes: updatedRequest.notes,
+        createdAt: updatedRequest.createdAt,
+        updatedAt: updatedRequest.updatedAt,
+        patient: updatedRequest.patientId ? {
+          id: (updatedRequest.patientId as any)._id,
+          name: (updatedRequest.patientId as any).name,
+          phone: (updatedRequest.patientId as any).phone,
+          email: (updatedRequest.patientId as any).email,
+        } : null,
+      },
+    };
+  }
+
   async updateRequestStatus(requestId: string, updateStatusDto: UpdateRequestStatusDto, user: UserDocument) {
     const request = await this.requestModel.findById(requestId).exec();
     if (!request) {
@@ -371,6 +483,33 @@ export class RequestsService {
     if (request.patientCompleted && request.nurseCompleted) {
       request.status = RequestStatus.COMPLETED;
       request.completedAt = new Date();
+
+      // Send completion notifications to both parties
+      try {
+        const patient = await this.userModel.findById(request.patientId).exec();
+        const nurse = await this.userModel.findById(request.nurseId).exec();
+
+        if (patient && nurse) {
+          // Notify both parties that the request is completed and they can leave reviews
+          await Promise.all([
+            this.notificationsService.notifyRequestCompleted(
+              patient._id.toString(),
+              request._id.toString(),
+              request.title,
+              true // isPatient
+            ),
+            this.notificationsService.notifyRequestCompleted(
+              nurse._id.toString(),
+              request._id.toString(),
+              request.title,
+              false // isPatient
+            )
+          ]);
+        }
+      } catch (notificationError) {
+        console.error('Failed to send completion notifications:', notificationError);
+        // Don't fail the completion if notification fails
+      }
     }
 
     await request.save();
@@ -407,6 +546,33 @@ export class RequestsService {
     if (request.patientCompleted && request.nurseCompleted) {
       request.status = RequestStatus.COMPLETED;
       request.completedAt = new Date();
+
+      // Send completion notifications to both parties
+      try {
+        const patient = await this.userModel.findById(request.patientId).exec();
+        const nurse = await this.userModel.findById(request.nurseId).exec();
+
+        if (patient && nurse) {
+          // Notify both parties that the request is completed and they can leave reviews
+          await Promise.all([
+            this.notificationsService.notifyRequestCompleted(
+              patient._id.toString(),
+              request._id.toString(),
+              request.title,
+              true // isPatient
+            ),
+            this.notificationsService.notifyRequestCompleted(
+              nurse._id.toString(),
+              request._id.toString(),
+              request.title,
+              false // isPatient
+            )
+          ]);
+        }
+      } catch (notificationError) {
+        console.error('Failed to send completion notifications:', notificationError);
+        // Don't fail the completion if notification fails
+      }
     }
 
     await request.save();

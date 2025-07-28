@@ -209,6 +209,135 @@ export class UpdateRequestStatusDto {
   cancellationReason?: string;
 }
 
+export class UpdateRequestDto {
+  @ApiPropertyOptional({
+    description: 'Request title',
+    example: 'Post-surgery care needed',
+    minLength: 5,
+    maxLength: 100,
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(5, { message: 'Title must be at least 5 characters long' })
+  @MaxLength(100, { message: 'Title must not exceed 100 characters' })
+  title?: string;
+
+  @ApiPropertyOptional({
+    description: 'Detailed description of the service needed',
+    example: 'Patient needs post-surgical wound care and medication administration...',
+    minLength: 20,
+    maxLength: 1000,
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(20, { message: 'Description must be at least 20 characters long' })
+  @MaxLength(1000, { message: 'Description must not exceed 1000 characters' })
+  description?: string;
+
+  @ApiPropertyOptional({
+    description: 'Type of nursing service required',
+    enum: ServiceType,
+    example: ServiceType.POST_SURGICAL_CARE,
+  })
+  @IsOptional()
+  @IsEnum(ServiceType, { message: 'Invalid service type' })
+  serviceType?: ServiceType;
+
+  @ApiPropertyOptional({
+    description: 'Service location coordinates [longitude, latitude]',
+    example: [31.233, 30.033],
+    type: [Number],
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(2, { message: 'Coordinates must contain exactly 2 values' })
+  @ArrayMaxSize(2, { message: 'Coordinates must contain exactly 2 values' })
+  @IsNumber({}, { each: true, message: 'Each coordinate must be a number' })
+  coordinates?: [number, number];
+
+  @ApiPropertyOptional({
+    description: 'Full address where service is needed',
+    example: '123 Main St, Apartment 4B, Cairo, Egypt',
+    minLength: 10,
+    maxLength: 200,
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(10, { message: 'Address must be at least 10 characters long' })
+  @MaxLength(200, { message: 'Address must not exceed 200 characters' })
+  address?: string;
+
+  @ApiPropertyOptional({
+    description: 'Scheduled date and time for the service (ISO 8601 format)',
+    example: '2024-12-25T10:00:00Z',
+  })
+  @IsOptional()
+  @IsDateString({}, { message: 'Invalid date format. Use ISO 8601 format (YYYY-MM-DDTHH:mm:ssZ)' })
+  scheduledDate?: string;
+
+  @ApiPropertyOptional({
+    description: 'Estimated duration of service in hours',
+    example: 4,
+    minimum: 1,
+    maximum: 24,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(1, { message: 'Duration must be at least 1 hour' })
+  @Max(24, { message: 'Duration must not exceed 24 hours' })
+  estimatedDuration?: number;
+
+  @ApiPropertyOptional({
+    description: 'Urgency level of the request',
+    example: 'high',
+    enum: ['low', 'medium', 'high', 'emergency'],
+  })
+  @IsOptional()
+  @IsString()
+  @IsEnum(['low', 'medium', 'high', 'emergency'], { message: 'Invalid urgency level' })
+  urgencyLevel?: string;
+
+  @ApiPropertyOptional({
+    description: 'Special requirements or instructions',
+    example: 'Patient has mobility issues, please bring wheelchair accessible equipment',
+    maxLength: 500,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500, { message: 'Special requirements must not exceed 500 characters' })
+  specialRequirements?: string;
+
+  @ApiPropertyOptional({
+    description: 'Budget for the service in EGP',
+    example: 200,
+    minimum: 50,
+    maximum: 5000,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(50, { message: 'Budget must be at least 50 EGP' })
+  @Max(5000, { message: 'Budget must not exceed 5000 EGP' })
+  budget?: number;
+
+  @ApiPropertyOptional({
+    description: 'Contact phone number',
+    example: '+201234567890',
+  })
+  @IsOptional()
+  @IsPhoneNumber('EG', { message: 'Invalid Egyptian phone number format' })
+  contactPhone?: string;
+
+  @ApiPropertyOptional({
+    description: 'Additional notes or comments',
+    example: 'Please call before arriving',
+    maxLength: 300,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(300, { message: 'Notes must not exceed 300 characters' })
+  notes?: string;
+}
+
 export class GetNearbyNursesDto {
   @ApiProperty({
     description: 'Latitude coordinate for the search center',

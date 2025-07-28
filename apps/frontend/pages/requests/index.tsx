@@ -5,6 +5,7 @@ import { LoadingSpinner } from '../../components/Layout';
 import { apiService } from '../../lib/api';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import PatientLayout from '../../components/PatientLayout';
 
 interface Request {
   id: string;
@@ -53,13 +54,7 @@ interface Application {
   request?: Request;
 }
 
-const sidebarItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: '🏠', href: '/dashboard' },
-  { id: 'requests', label: 'Requests', icon: '📋', href: '/requests', active: true },
-  { id: 'patients', label: 'Patients', icon: '👥', href: '/patients' },
-  { id: 'payments', label: 'Payments', icon: '💳', href: '/payments' },
-  { id: 'profile', label: 'Profile', icon: '👤', href: '/profile' }
-];
+
 
 function RequestsList() {
   const { user } = useAuth();
@@ -402,6 +397,11 @@ function RequestsList() {
     }
   };
 
+  const handleEditRequest = (requestId: string) => {
+    // Navigate to edit page
+    window.location.href = `/requests/edit/${requestId}`;
+  };
+
   const handleCompleteByNurse = async (requestId: string) => {
     try {
       if (confirm('Are you sure you want to mark this request as completed? This action cannot be undone.')) {
@@ -467,57 +467,17 @@ function RequestsList() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <div className="w-64 bg-white shadow-sm border-r border-gray-200">
-        <div className="p-6">
-          {/* User Profile Section */}
-          <div className="flex items-center space-x-3 mb-8">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
-              {user.name?.charAt(0) || 'N'}
-            </div>
-            <div>
-              <h2 className="font-semibold text-gray-900">{user.name || 'Nurse'}</h2>
-              <p className="text-sm text-gray-600 capitalize">{user.role}</p>
-            </div>
-          </div>
-
-          {/* Navigation Items */}
-          <nav className="space-y-1">
-            {sidebarItems.map((item) => (
-              <Link
-                key={item.id}
-                href={item.href}
-                className={`flex items-center space-x-3 px-3 py-3 text-sm font-medium transition-colors ${
-                  item.active
-                    ? 'bg-gray-100 text-gray-900'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <span className="text-lg">{item.icon}</span>
-                <span>{item.label}</span>
-              </Link>
-            ))}
-          </nav>
+    <PatientLayout activeItem="requests" title={user?.role === 'patient' ? 'My Requests' : 'Requests'}>
+      <div className="max-w-6xl">
+        {/* Header Description */}
+        <div className="mb-8">
+          <p className="text-gray-600">
+            {user?.role === 'patient'
+              ? 'Manage your nursing service requests'
+              : 'Find patients that need your care'
+            }
+          </p>
         </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 bg-white">
-        <div className="p-8">
-          <div className="max-w-6xl">
-            {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                {user?.role === 'patient' ? 'My Requests' : 'Requests'}
-              </h1>
-              <p className="text-gray-600">
-                {user?.role === 'patient'
-                  ? 'Manage your nursing service requests'
-                  : 'Find patients that need your care'
-                }
-              </p>
-            </div>
 
             {/* Search and Filters */}
             <div className="mb-8 space-y-4">
@@ -602,6 +562,7 @@ function RequestsList() {
                             request={request}
                             onCancel={handleCancelRequest}
                             onComplete={handleCompleteByPatient}
+                            onEdit={handleEditRequest}
                             formatDate={formatDate}
                             cancelling={cancelling === request.id}
                           />
@@ -672,10 +633,8 @@ function RequestsList() {
                 )} */}
               </div>
             )}
-          </div>
-        </div>
       </div>
-    </div>
+    </PatientLayout>
   );
 }
 
@@ -1122,12 +1081,14 @@ function PatientRequestCard({
   request,
   onCancel,
   onComplete,
+  onEdit,
   formatDate,
   cancelling
 }: {
   request: Request;
   onCancel: (id: string) => void;
   onComplete: (id: string) => void;
+  onEdit: (id: string) => void;
   formatDate: (date: string) => string;
   cancelling: boolean;
 }) {
@@ -1673,6 +1634,19 @@ function PatientRequestCard({
             View Details
           </Link>
 
+          {/* Edit button for pending requests */}
+          {request.status === 'pending' && (
+            <button
+              onClick={() => onEdit(request.id)}
+              className="inline-flex items-center px-3 py-2 border border-blue-300 rounded-md text-sm font-medium text-blue-700 bg-white hover:bg-blue-50 transition-colors"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              Edit Request
+            </button>
+          )}
+
           {/* Complete button for in_progress requests */}
           {request.status === 'in_progress' && (
             <button
@@ -1704,6 +1678,19 @@ function PatientRequestCard({
                 'Cancel Request'
               )}
             </button>
+          )}
+
+          {/* Reviews button for completed requests */}
+          {request.status === 'completed' && (
+            <Link
+              href={`/requests/${request.id}/reviews`}
+              className="inline-flex items-center px-3 py-2 border border-purple-300 rounded-md text-sm font-medium text-purple-700 bg-white hover:bg-purple-50 transition-colors"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+              </svg>
+              Reviews
+            </Link>
           )}
         </div>
         {/* Edit Application Modal */}

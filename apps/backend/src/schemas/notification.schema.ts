@@ -5,14 +5,24 @@ import { ApiProperty } from '@nestjs/swagger';
 export type NotificationDocument = Notification & Document;
 
 export enum NotificationType {
+  // Nurse approval/rejection notifications
+  NURSE_APPROVED = 'nurse_approved',
+  NURSE_REJECTED = 'nurse_rejected',
+  NURSE_VERIFIED = 'nurse_verified',
+
+  // Request-related notifications
   REQUEST_CREATED = 'request_created',
+  REQUEST_APPLICATION = 'request_application',
   REQUEST_ACCEPTED = 'request_accepted',
+  REQUEST_REJECTED = 'request_rejected',
   REQUEST_COMPLETED = 'request_completed',
   REQUEST_CANCELLED = 'request_cancelled',
-  NURSE_VERIFIED = 'nurse_verified',
-  NURSE_REJECTED = 'nurse_rejected',
+
+  // Review and payment notifications
   REVIEW_RECEIVED = 'review_received',
   PAYMENT_RECEIVED = 'payment_received',
+
+  // System notifications
   SYSTEM_ANNOUNCEMENT = 'system_announcement',
   REMINDER = 'reminder'
 }

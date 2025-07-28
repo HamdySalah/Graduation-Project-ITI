@@ -4,6 +4,7 @@ import { AuthProvider } from '../lib/auth';
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/router';
+import '../lib/setupErrors'; // Initialize error handling system
 
 // Import Navbar with dynamic loading to avoid hydration issues
 const Navbar = dynamic(() => import('../components/Navbar'), { 
@@ -14,6 +15,11 @@ const Navbar = dynamic(() => import('../components/Navbar'), {
 const ChatWidget = dynamic(() => import('../components/ChatWidget'), { 
   ssr: false 
 });
+
+// Temporarily disabled due to package issues
+// const ChatWidget = dynamic(() => import('../components/ChatWidget'), {
+//   ssr: false
+// });
 
 function MyApp({ Component, pageProps }: AppProps) {
   // Initialize router
@@ -60,7 +66,12 @@ function MyApp({ Component, pageProps }: AppProps) {
       <main className={`flex-grow ${!isAuthPage && !isAdminPage ? 'pt-0' : ''}`}>
         <Component {...pageProps} />
       </main>
-      {/* AI Chat Widget - appears on all pages */}
+      {/* AI Chat Widget - appears on all pages */
+      
+      }
+      {/* Temporarily disabled due to package issues */}
+      
+      {/* <ChatWidget /> */}
       <ChatWidget />
     </div>
   ) : (

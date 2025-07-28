@@ -8,6 +8,7 @@ import { ProfileSubmission, ProfileSubmissionSchema } from '../schemas/profile-s
 import { PatientRequest, PatientRequestSchema } from '../schemas/patient-request.schema';
 import { Application, ApplicationSchema } from '../schemas/application.schema';
 import { Review, ReviewSchema } from '../schemas/review.schema';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { Review, ReviewSchema } from '../schemas/review.schema';
       { name: Application.name, schema: ApplicationSchema },
       { name: Review.name, schema: ReviewSchema },
     ]),
+    NotificationsModule,
   ],
   providers: [NursesService],
   controllers: [NursesController],

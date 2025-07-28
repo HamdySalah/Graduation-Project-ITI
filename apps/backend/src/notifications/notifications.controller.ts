@@ -30,7 +30,6 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard, Roles } from '../auth/roles.guard';
 import { UserRole } from '../schemas/user.schema';
 import { NotificationType, NotificationPriority } from '../schemas/notification.schema';
-import { CreateNotificationDto, NotificationResponseDto } from '../dto/notification.dto';
 
 @ApiTags('Notifications')
 @Controller('api/notifications')
@@ -214,7 +213,19 @@ export class NotificationsController {
     summary: 'Broadcast notification to users',
     description: 'Send a notification to multiple users (Admin only)'
   })
-  @ApiBody({ type: CreateNotificationDto })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Notification title' },
+        message: { type: 'string', description: 'Notification message' },
+        userIds: { type: 'array', items: { type: 'string' }, description: 'Array of user IDs to notify' },
+        priority: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'], description: 'Notification priority' },
+        actionUrl: { type: 'string', description: 'Optional action URL' }
+      },
+      required: ['title', 'message']
+    }
+  })
   @ApiResponse({
     status: HttpStatus.CREATED,
     description: 'Broadcast notification sent successfully'
@@ -229,10 +240,31 @@ export class NotificationsController {
     description: 'Invalid input data'
   })
   async broadcastNotification(
-    @Body(ValidationPipe) createNotificationDto: CreateNotificationDto,
+    @Body() body: {
+      title: string;
+      message: string;
+      userIds?: string[];
+      priority?: 'low' | 'medium' | 'high' | 'urgent';
+      actionUrl?: string;
+    },
     @Request() req: any
   ) {
-    return this.notificationsService.broadcastNotification(createNotificationDto, req.user);
+    const { title, message, userIds, priority, actionUrl } = body;
+
+    // If no specific users provided, you might want to implement logic to get all users
+    const targetUserIds = userIds || [];
+
+    const notifications = await this.notificationsService.notifySystemAnnouncement(
+      targetUserIds,
+      title,
+      message,
+      actionUrl
+    );
+
+    return {
+      message: 'Broadcast notification sent successfully',
+      notificationCount: notifications.length
+    };
   }
 
   @Get('admin/stats')

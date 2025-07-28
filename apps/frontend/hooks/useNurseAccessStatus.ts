@@ -52,6 +52,41 @@ export function useNurseAccessStatus() {
       });
 
       if (!accessResponse.ok) {
+        // Check if it's a rejected account (401 with rejection message)
+        if (accessResponse.status === 401) {
+          try {
+            const errorData = await accessResponse.json();
+            if (errorData.message && errorData.message.includes('rejected')) {
+              // This is a rejected account
+              const rejectedStatus: NurseAccessStatus = {
+                canAccessPlatform: false,
+                canAccessDashboard: false,
+                canViewRequests: false,
+                canCreateRequests: false,
+                canAccessProfile: true,
+                profileCompletionStatus: 'rejected',
+                redirectTo: '/account-rejected',
+                reason: 'Your account has been rejected. Please contact support for more information.',
+                nextRequiredAction: 'contact_support',
+                currentStep: undefined,
+              };
+
+              setAccessStatus(rejectedStatus);
+
+              const rejectedStepInfo: ProfileStepInfo = {
+                nextStep: 0,
+                completionPercentage: 0,
+                statusMessage: 'Your account has been rejected. Please contact support for assistance.',
+              };
+
+              setStepInfo(rejectedStepInfo);
+              return;
+            }
+          } catch (parseError) {
+            console.warn('Could not parse 401 error response');
+          }
+        }
+
         // If API is not available, provide fallback logic based on user status
         console.warn('Nurse profile status API not available, using fallback logic');
 
@@ -61,20 +96,26 @@ export function useNurseAccessStatus() {
           canViewRequests: user.status === 'verified',
           canCreateRequests: user.status === 'verified',
           canAccessProfile: true,
-          profileCompletionStatus: user.status === 'verified' ? 'approved' : 'not_started',
-          redirectTo: user.status === 'verified' ? undefined : '/nurse-profile-complete',
-          reason: user.status === 'verified' ? undefined : 'Profile completion required',
-          nextRequiredAction: user.status === 'verified' ? 'none' : 'complete_profile',
+          profileCompletionStatus: user.status === 'verified' ? 'approved' :
+                                  user.status === 'rejected' ? 'rejected' : 'not_started',
+          redirectTo: user.status === 'verified' ? undefined :
+                     user.status === 'rejected' ? '/account-rejected' : '/nurse-profile-complete',
+          reason: user.status === 'verified' ? undefined :
+                 user.status === 'rejected' ? 'Your account has been rejected' : 'Profile completion required',
+          nextRequiredAction: user.status === 'verified' ? 'none' :
+                             user.status === 'rejected' ? 'contact_support' : 'complete_profile',
           currentStep: user.status === 'verified' ? undefined : 1,
         };
 
         setAccessStatus(fallbackStatus);
 
         const fallbackStepInfo: ProfileStepInfo = {
-          nextStep: user.status === 'verified' ? 4 : 1,
+          nextStep: user.status === 'verified' ? 4 : user.status === 'rejected' ? 0 : 1,
           completionPercentage: user.status === 'verified' ? 100 : 0,
           statusMessage: user.status === 'verified'
             ? 'Welcome! You have full access to the platform.'
+            : user.status === 'rejected'
+            ? 'Your account has been rejected. Please contact support for assistance.'
             : 'Please complete your profile setup to access the platform.',
         };
 

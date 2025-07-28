@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from '../lib/auth';
 import Layout from '../components/Layout';
 import Link from 'next/link';
+import PatientLayout from '../components/PatientLayout';
 
 interface SettingsSection {
   id: string;
@@ -86,13 +87,7 @@ const legalSettings: SettingsSection[] = [
   }
 ];
 
-const sidebarItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: '🏠', href: '/dashboard' },
-  { id: 'patients', label: 'My Patients', icon: '👥', href: '/requests' },
-  { id: 'profile', label: 'My Profile', icon: '👤', href: '/profile' },
-  { id: 'settings', label: 'Settings', icon: '⚙️', href: '/settings', active: true },
-  { id: 'help', label: 'Help', icon: '❓', href: '/help' }
-];
+
 
 export default function Settings() {
   const { user } = useAuth();
@@ -174,46 +169,8 @@ export default function Settings() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <div className="w-64 bg-white shadow-sm border-r border-gray-200">
-        <div className="p-6">
-          {/* User Profile Section */}
-          <div className="flex items-center space-x-3 mb-8">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
-              {user.name?.charAt(0) || 'U'}
-            </div>
-            <div>
-              <h2 className="font-semibold text-gray-900">{user.name || 'User'}</h2>
-              <p className="text-sm text-gray-600 capitalize">{user.role}</p>
-            </div>
-          </div>
-
-          {/* Navigation Items */}
-          <nav className="space-y-1">
-            {sidebarItems.map((item) => (
-              <Link
-                key={item.id}
-                href={item.href}
-                className={`flex items-center space-x-3 px-3 py-3 text-sm font-medium transition-colors ${
-                  item.active
-                    ? 'bg-gray-100 text-gray-900'
-                    : 'text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <span className="text-lg">{item.icon}</span>
-                <span>{item.label}</span>
-              </Link>
-            ))}
-          </nav>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 bg-white">
-        <div className="p-8">
-          <div className="max-w-4xl">
-            <h1 className="text-3xl font-bold text-gray-900 mb-8">Settings</h1>
+    <PatientLayout activeItem="settings" title="Settings">
+      <div className="max-w-4xl">
 
             {/* Account Section */}
             {renderSettingsSection('Account', accountSettings)}
@@ -226,9 +183,7 @@ export default function Settings() {
 
             {/* Legal Section */}
             {renderSettingsSection('Legal', legalSettings)}
-          </div>
-        </div>
       </div>
-    </div>
+    </PatientLayout>
   );
 }

@@ -49,7 +49,7 @@ export class Step2VerificationDto {
   };
 
   @ApiProperty({
-    description: 'Background check document file information',
+    description: 'Experience or Recommendation document file information',
     type: 'object'
   })
   @IsOptional()

@@ -65,7 +65,7 @@ export default function Step2VerificationDocuments({
         return undefined;
       
       case 'backgroundCheckDocument':
-        if (!value) return 'Background check report is required';
+        if (!value) return 'Experience or Recommendation report is required';
         if (value instanceof File) {
           const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
           if (!allowedTypes.includes(value.type)) {
@@ -363,12 +363,12 @@ export default function Step2VerificationDocuments({
 
           {/* Background Check Section */}
           <div className="mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Background Check</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Experience or Recommendation</h3>
             <FileUploadField
               fieldName="backgroundCheckDocument"
-              label="Upload Background Check Report"
+              label="Upload Experience or Recommendation Report"
               acceptedFormats="Accepted formats: PDF, JPG, PNG. Max size: 5MB"
-              description="Upload your background check report"
+              description="Upload your Experience or Recommendation report"
             />
           </div>
 

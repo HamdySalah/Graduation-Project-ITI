@@ -138,10 +138,12 @@ function AdminRequestCard({ request }: { request: AdminRequest }) {
               </div>
               <h4 className="font-medium text-blue-900">Patient</h4>
             </div>
-            <p className="text-sm font-medium text-blue-800">{request.patient.name}</p>
+            <p className="text-sm font-medium text-blue-800">
+              {request.patient?.name || 'Unknown Patient'}
+            </p>
             <div className="flex flex-col text-xs text-blue-700 mt-1">
-              <span>{request.patient.email}</span>
-              <span>{request.patient.phone}</span>
+              <span>{request.patient?.email || 'No email'}</span>
+              <span>{request.patient?.phone || 'No phone'}</span>
             </div>
           </div>
           
@@ -155,10 +157,12 @@ function AdminRequestCard({ request }: { request: AdminRequest }) {
                 </div>
                 <h4 className="font-medium text-green-900">Assigned Nurse</h4>
               </div>
-              <p className="text-sm font-medium text-green-800">{request.nurse.name}</p>
+              <p className="text-sm font-medium text-green-800">
+                {request.nurse?.name || 'Unknown Nurse'}
+              </p>
               <div className="flex flex-col text-xs text-green-700 mt-1">
-                <span>{request.nurse.email}</span>
-                <span>{request.nurse.phone}</span>
+                <span>{request.nurse?.email || 'No email'}</span>
+                <span>{request.nurse?.phone || 'No phone'}</span>
               </div>
             </div>
           ) : (
@@ -241,7 +245,7 @@ function AdminRequestCard({ request }: { request: AdminRequest }) {
             
             {request.nurse && (
               <Link
-                href={`/admin/nurses?id=${request.nurse.id}`}
+                href={`/admin/nurses?id=${request.nurse?.id || ''}`}
                 className="text-purple-600 hover:text-purple-800 text-sm font-medium flex items-center"
               >
                 <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

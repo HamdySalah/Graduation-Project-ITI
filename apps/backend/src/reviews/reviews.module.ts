@@ -5,7 +5,6 @@ import { ReviewsService } from './reviews.service';
 import { Review, ReviewSchema } from '../schemas/review.schema';
 import { User, UserSchema } from '../schemas/user.schema';
 import { PatientRequest, PatientRequestSchema } from '../schemas/patient-request.schema';
-import { NurseProfile, NurseProfileSchema } from '../schemas/nurse-profile.schema';
 
 @Module({
   imports: [
@@ -13,7 +12,6 @@ import { NurseProfile, NurseProfileSchema } from '../schemas/nurse-profile.schem
       { name: Review.name, schema: ReviewSchema },
       { name: User.name, schema: UserSchema },
       { name: PatientRequest.name, schema: PatientRequestSchema },
-      { name: NurseProfile.name, schema: NurseProfileSchema },
     ]),
   ],
   controllers: [ReviewsController],

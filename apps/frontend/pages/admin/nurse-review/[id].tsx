@@ -2,13 +2,16 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { apiService } from '../../../lib/api';
 import AdminLayout from '../../../components/admin/AdminLayout';
+import ErrorDisplay from '../../../components/ErrorDisplay';
+import { CustomError, InvalidCredentialsError, ValidationError } from '../../../lib/errors';
+import { errorHandler, formatErrorForUI } from '../../../lib/errorHandler';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const APPROVAL_CHECKLIST = [
   'Verify License',
   'Review Resume',
   'Check References',
-  'Background Check',
+  'Experience or Recommendation',
 ];
 
 interface Document {
@@ -84,7 +87,7 @@ export default function NurseReviewDetail() {
   
   const [nurse, setNurse] = useState<NurseProfile | null>(null);
   const [loadingNurse, setLoadingNurse] = useState(true);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState<CustomError | Error | string | null>(null);
   const [processing, setProcessing] = useState(false);
   const [adminNotes, setAdminNotes] = useState<string>('');
   const [rejectionReason, setRejectionReason] = useState<string>('');
@@ -105,7 +108,7 @@ export default function NurseReviewDetail() {
     }
     
     if (nurse.backgroundCheckDocument) {
-      documents.push({...nurse.backgroundCheckDocument, documentType: 'Background Check'});
+      documents.push({...nurse.backgroundCheckDocument, documentType: 'Experience or Recommendation'});
     }
     
     if (nurse.additionalDocuments && nurse.additionalDocuments.length > 0) {
@@ -175,7 +178,8 @@ export default function NurseReviewDetail() {
       
     } catch (err: any) {
       console.error('Failed to approve nurse:', err);
-      setError(`Failed to approve nurse: ${err.message}`);
+      const customError = errorHandler.handleError(err);
+      setError(customError);
     } finally {
       setProcessing(false);
     }
@@ -205,7 +209,8 @@ export default function NurseReviewDetail() {
       
     } catch (err: any) {
       console.error('Failed to reject nurse:', err);
-      setError(`Failed to reject nurse: ${err.message}`);
+      const customError = errorHandler.handleError(err);
+      setError(customError);
     } finally {
       setProcessing(false);
     }
@@ -249,9 +254,11 @@ export default function NurseReviewDetail() {
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Nurse Not Found</h1>
           <p className="text-gray-600 mb-4">The requested nurse profile could not be found.</p>
           {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg max-w-md mx-auto">
-              <p className="text-red-600 text-sm">{error}</p>
-            </div>
+            <ErrorDisplay
+              error={error}
+              className="mb-4 max-w-md mx-auto"
+              onDismiss={() => setError(null)}
+            />
           )}
           <p className="text-gray-500 text-sm mb-8">Nurse ID: {id}</p>
           <button
@@ -275,9 +282,16 @@ export default function NurseReviewDetail() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4"
+              className="mb-6"
             >
-              <p className="text-red-600">{error}</p>
+              <ErrorDisplay
+                error={error}
+                onDismiss={() => setError(null)}
+                onRetry={() => {
+                  setError(null);
+                  // Optionally reload the nurse data
+                }}
+              />
             </motion.div>
           )}
 

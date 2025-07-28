@@ -31,7 +31,7 @@ const Navbar = () => {
         {/* Logo/Brand */}
         <div className="flex items-center gap-3">
           <img src="/logo.png" alt="Nurse Platform Logo" className="h-10 w-10 object-contain drop-shadow-xl animate-bounce" />
-          <span className="ml-2 text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-700 via-purple-600 to-blue-400 tracking-wide">عناية</span>
+          <span className="ml-2 text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-700 via-purple-600 to-white-400 tracking-wide">عناية</span>
         </div>
 
         {/* Navigation Links */}

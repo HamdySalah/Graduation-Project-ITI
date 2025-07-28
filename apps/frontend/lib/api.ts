@@ -2,6 +2,20 @@
 // Import fetch for Node.js environments
 import fetch from 'isomorphic-fetch';
 
+import {
+  CustomError,
+  ErrorCode,
+  InvalidCredentialsError,
+  TokenExpiredError,
+  UnauthorizedError,
+  ValidationError,
+  ResourceNotFoundError,
+  ApplicationAlreadySubmittedError,
+  NetworkError,
+  ServerError
+} from './errors';
+import { errorHandler } from './errorHandler';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 // Remove unused interface for now
@@ -59,85 +73,34 @@ class ApiService {
   private async handleResponse<T>(response: Response): Promise<T> {
     console.log('API Response status:', response.status, response.statusText);
 
-    // Handle token expiration more gracefully - don't throw errors for 401
-    if (response.status === 401) {
-      console.warn('Received 401 response, returning null instead of throwing error');
-      // Return null for 401 responses instead of throwing
-      return null as T;
-    }
-
     if (!response.ok) {
-      let errorMessage = `HTTP error! status: ${response.status}`;
-      
-      try {
-        // Try to parse error response as JSON
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
+      // For 401 errors, check if it's a rejected account
+      if (response.status === 401) {
+        try {
           const errorData = await response.json();
-          console.log('Error response data:', errorData);
-          
-          if (errorData.message) {
-            errorMessage = errorData.message;
-          } else if (errorData.error) {
-            errorMessage = errorData.error;
-          } else if (typeof errorData === 'string') {
-            errorMessage = errorData;
+          if (errorData.message && errorData.message.includes('rejected')) {
+            // This is a rejected account, create a specific error
+            const rejectedError = new CustomError(
+              ErrorCode.ACCOUNT_SUSPENDED,
+              'Account has been rejected',
+              'Your account has been rejected. Please contact support for more information.',
+              401,
+              errorData
+            );
+            throw rejectedError;
           }
-        } else {
-          // If not JSON, try to get text
-          const errorText = await response.text();
-          if (errorText) {
-            console.log('Error response text:', errorText);
-            errorMessage = errorText;
-          }
+        } catch (parseError) {
+          // If we can't parse the error, fall back to token expired
         }
-      } catch (e) {
-        console.log('Failed to parse error response:', e);
-        // If response parsing fails, use status text
-        errorMessage = response.statusText || errorMessage;
+
+        // For other 401 errors, return null (token expired/invalid)
+        console.warn('Received 401 response, returning null instead of throwing error');
+        return null as T;
       }
-      
-      // Add status code to error message for better debugging
-      const errorWithCode = `${errorMessage} (Status: ${response.status})`;
-      console.error('API Error:', errorWithCode);
-      
-      // For user-friendly messages on common errors
-      if (response.status === 500) {
-        console.error('Server error details:', errorMessage);
-        // Check if it's a specific operation that might have succeeded
-        if (errorMessage.includes('completed') || errorMessage.includes('marked')) {
-          throw new Error('Request may have been completed successfully. Please check the completed requests page.');
-        }
-        throw new Error('Server error occurred. Please try again later.');
-      } else if (response.status === 400) {
-        // For validation errors, provide a cleaner error message
-        if (errorMessage.includes('Validation failed') || errorMessage.includes('already applied')) {
-          console.log('Validation error details:', errorMessage);
-          
-          // More specific error messages based on the content
-          if (errorMessage.includes('already applied')) {
-            throw new Error('You have already applied to this request');
-          } else if (errorMessage.includes('cannot be canceled')) {
-            throw new Error('This request cannot be canceled because it has already been accepted');
-          } else if (errorMessage.includes('cannot be edited')) {
-            throw new Error('This request cannot be edited because it has already been processed');
-          }
-          // Don't throw error for duplicate applications - just log it
-          if (errorMessage.includes('already applied')) {
-            console.log('User already applied to this request');
-            // Return a success response for duplicate applications
-            return response.json().catch(() => ({ success: true, message: 'Application already exists' }));
-          }
-          throw new Error('There was an issue with the request format. The operation may have succeeded despite this error.');
-        } else {
-          console.log('Bad request details:', errorMessage);
-          throw new Error(`Request failed: ${errorMessage}`);
-        }
-      } else if (response.status === 403) {
-        throw new Error('You do not have permission to perform this action.');
-      } else {
-        throw new Error(errorMessage);
-      }
+
+      // Use the error handler to create appropriate custom errors
+      const customError = await errorHandler.handleApiError(response);
+      throw customError;
     }
 
     try {
@@ -436,6 +399,31 @@ class ApiService {
       headers: this.getAuthHeaders(),
     });
     return this.handleResponse(response);
+  }
+
+  async updateRequest(requestId: string, updateData: any) {
+    try {
+      console.log('Updating request with data:', updateData);
+      const authHeaders = this.getAuthHeaders();
+      console.log('Auth headers for update request:', authHeaders);
+
+      const response = await fetch(`${API_BASE_URL}/api/requests/${requestId}`, {
+        method: 'PUT',
+        headers: authHeaders,
+        body: JSON.stringify(updateData),
+      });
+
+      console.log('Update request response status:', response.status);
+
+      if (response.status === 401) {
+        throw new Error('Authentication required. Please log in.');
+      }
+
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error('Error updating request:', error);
+      throw error;
+    }
   }
 
   async updateRequestStatus(requestId: string, status: string, cancellationReason?: string) {

@@ -4,6 +4,7 @@ import { Model } from 'mongoose';
 import { User, UserDocument, UserRole, UserStatus } from '../schemas/user.schema';
 import { NurseProfile, NurseProfileDocument } from '../schemas/nurse-profile.schema';
 import { PatientRequest, PatientRequestDocument } from '../schemas/patient-request.schema';
+import { NotificationsService } from '../notifications/notifications.service';
 import { Application, ApplicationDocument } from '../schemas/application.schema';
 import { Review, ReviewDocument } from '../schemas/review.schema';
 import { GetNearbyNursesDto } from '../dto/request.dto';
@@ -16,6 +17,7 @@ export class NursesService {
     @InjectModel(PatientRequest.name) private patientRequestModel: Model<PatientRequestDocument>,
     @InjectModel(Application.name) private applicationModel: Model<ApplicationDocument>,
     @InjectModel(Review.name) private reviewModel: Model<ReviewDocument>,
+    private notificationsService: NotificationsService,
   ) {}
 
   async getNearbyNurses(getNearbyNursesDto: GetNearbyNursesDto) {
@@ -107,6 +109,14 @@ export class NursesService {
       nurseProfile.verifiedAt = new Date();
       nurseProfile.verifiedBy = adminUser._id;
       await nurseProfile.save();
+    }
+
+    // Send notification to nurse
+    try {
+      await this.notificationsService.notifyNurseApproved(nurseId);
+    } catch (notificationError) {
+      console.error('Failed to send nurse approval notification:', notificationError);
+      // Don't fail the verification if notification fails
     }
 
     return {
@@ -267,6 +277,14 @@ export class NursesService {
       nurseProfile.rejectedBy = adminUser._id;
       nurseProfile.rejectionReason = rejectionReason || 'No reason provided';
       await nurseProfile.save();
+    }
+
+    // Send notification to nurse
+    try {
+      await this.notificationsService.notifyNurseRejected(nurseId, rejectionReason);
+    } catch (notificationError) {
+      console.error('Failed to send nurse rejection notification:', notificationError);
+      // Don't fail the rejection if notification fails
     }
 
     return {

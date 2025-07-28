@@ -12,6 +12,7 @@ import { AdminModule } from '../admin/admin.module';
 import { DashboardModule } from '../dashboard/dashboard.module';
 import { UserManagementModule } from '../user-management/user-management.module';
 import { ReviewsModule } from '../reviews/reviews.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { NurseProfileStatusModule } from '../nurse-profile-status/nurse-profile-status.module';
 import { MiddlewareModule } from '../middleware/middleware.module';
 import { EmailModule } from '../email/email.module';
@@ -49,6 +50,7 @@ import { UploadsModule } from '../uploads/uploads.module';
     DashboardModule,
     UserManagementModule,
     ReviewsModule,
+    NotificationsModule,
     NurseProfileStatusModule,
     MiddlewareModule,
     UploadsModule,

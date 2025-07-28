@@ -1,6 +1,7 @@
 /**
  * NestJS Nurse Platform Backend
  * Production-ready backend with comprehensive API documentation
+ * Updated to trigger restart - v2
  */
 
 import { Logger, ValidationPipe } from '@nestjs/common';

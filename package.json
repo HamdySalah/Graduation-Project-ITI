@@ -7,7 +7,10 @@
     "dev:backend": "nx serve backend",
     "dev": "nx run-many --target=dev,serve --projects=frontend,backend --parallel=2",
     "build": "nx run-many --target=build --projects=frontend,backend",
-    "start": "nx run-many --target=start,serve --projects=frontend,backend --parallel=2 --prod"
+    "start": "nx run-many --target=start,serve --projects=frontend,backend --parallel=2 --prod",
+    "seed": "node apps/backend/scripts/simple-seed.js",
+    "seed:full": "node apps/backend/scripts/comprehensive-seed.js",
+    "seed:simple": "node apps/backend/scripts/run-seed.js"
   },
   "private": true,
   "dependencies": {
@@ -20,7 +23,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.0",
     "@nestjs/swagger": "^11.2.0",
-    "@stripe/react-stripe-js": "^1.16.5",
+    "@stripe/react-stripe-js": "^3.8.0",
     "@stripe/stripe-js": "^1.54.2",
     "@types/multer": "^1.4.13",
     "axios": "^1.10.0",
@@ -31,6 +34,7 @@
     "dotenv": "^17.2.0",
     "framer-motion": "^12.23.0",
     "handlebars": "^4.7.8",
+    "joi": "^17.13.3",
     "lucide-react": "^0.525.0",
     "mongoose": "^8.16.0",
     "multer": "^1.4.5-lts.1",

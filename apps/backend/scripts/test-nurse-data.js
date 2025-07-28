@@ -155,7 +155,7 @@ async function testNurseData() {
           console.log('   License Doc:', profile.licenseDocument.originalName);
         }
         if (profile.backgroundCheckDocument) {
-          console.log('   Background Check:', profile.backgroundCheckDocument.originalName);
+          console.log('    Experience or Recommendation:', profile.backgroundCheckDocument.originalName);
         }
         if (profile.resumeDocument) {
           console.log('   Resume:', profile.resumeDocument.originalName);

@@ -3,14 +3,17 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Application, ApplicationDocument, ApplicationStatus } from '../schemas/application.schema';
 import { PatientRequest, PatientRequestDocument, RequestStatus } from '../schemas/patient-request.schema';
-import { UserDocument, UserRole } from '../schemas/user.schema';
+import { User, UserDocument, UserRole } from '../schemas/user.schema';
 import { CreateApplicationDto, UpdateApplicationStatusDto } from '../dto/application.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ApplicationsService {
   constructor(
     @InjectModel(Application.name) private applicationModel: Model<ApplicationDocument>,
     @InjectModel(PatientRequest.name) private requestModel: Model<PatientRequestDocument>,
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    private notificationsService: NotificationsService,
   ) {}
 
   /**
@@ -62,6 +65,23 @@ export class ApplicationsService {
       estimatedTime: createApplicationDto.estimatedTime,
       status: ApplicationStatus.PENDING
     });
+
+    // Send notification to patient about new application
+    try {
+      const patient = await this.userModel.findById(request.patientId).exec();
+      if (patient) {
+        await this.notificationsService.notifyRequestApplication(
+          patient._id.toString(),
+          nurseUser._id.toString(),
+          nurseUser.name || 'A nurse',
+          request._id.toString(),
+          request.title
+        );
+      }
+    } catch (notificationError) {
+      console.error('Failed to send application notification:', notificationError);
+      // Don't fail the application if notification fails
+    }
 
     return {
       id: application._id,
@@ -194,6 +214,33 @@ export class ApplicationsService {
     // Update the application status
     application.status = updateDto.status;
     await application.save();
+
+    // Send notifications based on status change
+    try {
+      const nurse = await this.userModel.findById(application.nurseId).exec();
+      const patient = await this.userModel.findById(request.patientId).exec();
+
+      if (nurse && patient) {
+        if (updateDto.status === ApplicationStatus.ACCEPTED) {
+          await this.notificationsService.notifyRequestAccepted(
+            nurse._id.toString(),
+            patient.name || 'A patient',
+            request._id.toString(),
+            request.title
+          );
+        } else if (updateDto.status === ApplicationStatus.REJECTED) {
+          await this.notificationsService.notifyRequestRejected(
+            nurse._id.toString(),
+            patient.name || 'A patient',
+            request._id.toString(),
+            request.title
+          );
+        }
+      }
+    } catch (notificationError) {
+      console.error('Failed to send application status notification:', notificationError);
+      // Don't fail the status update if notification fails
+    }
 
     return {
       id: application._id,
