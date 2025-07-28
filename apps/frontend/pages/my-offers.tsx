@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { useAuth } from '../lib/auth';
 import { apiService } from '../lib/api';
 import Link from 'next/link';
 import Layout from '../components/Layout';
-import { LoadingSpinner } from '../components/Layout';
+import { LoadingSpinner } from '../components/Layou';
 
 interface Application {
   id: string;
   price: number;
   estimatedTime: number;
-  status: 'pending' | 'accepted' | 'rejected';
+  status: string; // Allow any status string
   createdAt: string;
   request: {
     id: string;
@@ -21,6 +22,10 @@ interface Application {
     budget: number;
     status: string;
     serviceType?: string;
+    patientCompleted?: boolean;
+    patientCompletedAt?: string;
+    nurseCompleted?: boolean;
+    nurseCompletedAt?: string;
     patient: {
       id: string;
       name: string;
@@ -34,12 +39,35 @@ interface Application {
   };
 }
 
+interface Service {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  address: string;
+  scheduledDate: string;
+  estimatedDuration: number;
+  budget: number;
+  patient?: {
+    id: string;
+    name: string;
+    phone: string;
+  };
+  nurse?: {
+    id: string;
+    name: string;
+    phone: string;
+  };
+}
+
 export default function MyOffers() {
   const { user } = useAuth();
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [cancelingId, setCancelingId] = useState<string | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (user) {
@@ -59,7 +87,7 @@ export default function MyOffers() {
       console.log(`Loading data for ${user.role} with ID ${user.id}`);
 
       if (user.role === 'nurse') {
-        // For nurses, load applications they've made
+        // For nurses, load all applications they've made (pending, accepted, rejected)
         console.log('Fetching nurse applications...');
         try {
           const data = await apiService.getApplicationsByNurse();
@@ -69,13 +97,11 @@ export default function MyOffers() {
             console.warn('No applications data received from API');
             setApplications([]);
           } else {
-            // Filter only accepted applications for My Offers page
-            const acceptedApps = Array.isArray(data) 
-              ? data.filter(app => app.status === 'accepted') 
-              : [];
+            // Show all applications, not just accepted ones
+            const nurseApps = Array.isArray(data) ? data : [];
             
-            console.log(`Found ${acceptedApps.length} accepted applications`);
-            setApplications(acceptedApps);
+            console.log(`Found ${nurseApps.length} total nurse applications`);
+            setApplications(nurseApps);
           }
         } catch (apiError: any) {
           console.error('API error when fetching nurse applications:', apiError);
@@ -143,7 +169,9 @@ export default function MyOffers() {
       if (confirm('Are you sure you want to mark this request as completed? This action cannot be undone.')) {
         await apiService.markRequestCompletedByNurse(requestId);
         alert('Request marked as completed by nurse. Waiting for patient confirmation.');
-        await loadData(); // Reload to get updated data
+
+        // Redirect to completed requests page
+        router.push('/completed-requests');
       }
     } catch (err: any) {
       console.error('Complete request error:', err);
@@ -160,13 +188,32 @@ export default function MyOffers() {
       if (confirm('Are you sure you want to mark this request as completed? This action will finalize the service.')) {
         await apiService.markRequestCompletedByPatient(requestId);
         alert('Request marked as completed. Thank you for using our service!');
-        await loadData(); // Reload to get updated data
+
+        // Redirect to patient completed requests page
+        router.push('/patient-completed-requests');
       }
     } catch (err: any) {
       console.error('Complete request error:', err);
       alert(`Failed to complete request: ${err.message}`);
     } finally {
       setProcessing(null);
+    }
+  };
+  
+  // Handler for nurse to cancel a pending application
+  const handleCancelApplication = async (applicationId: string) => {
+    try {
+      setCancelingId(applicationId);
+      if (confirm('Are you sure you want to cancel this application?')) {
+        await apiService.cancelApplication(applicationId);
+        alert('Application cancelled successfully');
+        await loadData(); // Reload to get updated data
+      }
+    } catch (err: any) {
+      console.error('Error cancelling application:', err);
+      alert(`Failed to cancel application: ${err.message}`);
+    } finally {
+      setCancelingId(null);
     }
   };
 
@@ -193,9 +240,6 @@ export default function MyOffers() {
       default: return '❓';
     }
   };
-
-  // This ensures we have a correct reference to the loadData function for refreshing data
-  const fetchApplications = () => loadData();
 
   if (!user) {
     return (
@@ -237,7 +281,7 @@ export default function MyOffers() {
   }
 
   return (
-    <Layout title={user.role === 'nurse' ? 'My Offers' : 'My Active Services'}>
+    <Layout title={user.role === 'nurse' ? 'My Applications' : 'My Active Services'}>
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <div className="bg-white shadow-sm border-b">
@@ -250,11 +294,11 @@ export default function MyOffers() {
                   </svg>
                 </Link>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  {user.role === 'nurse' ? 'My Offers' : 'My Active Services'}
+                  {user.role === 'nurse' ? 'My Applications' : 'My Active Services'}
                 </h1>
               </div>
               <div className="text-sm text-gray-500">
-                {applications.length} {user.role === 'nurse' ? 'offers' : 'active services'}
+                {applications.length} {user.role === 'nurse' ? 'applications' : 'active services'}
               </div>
             </div>
           </div>
@@ -285,13 +329,13 @@ export default function MyOffers() {
             </div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               {user.role === 'nurse' 
-                ? "No offers yet" 
+                ? "No applications yet" 
                 : "No active services yet"
               }
             </h3>
             <p className="text-gray-500 mb-4">
               {user.role === 'nurse'
-                ? "Start applying to patient requests to see your offers here."
+                ? "Start applying to patient requests to see your applications here."
                 : "Create a request to find a nurse for your needs."
               }
             </p>
@@ -309,7 +353,7 @@ export default function MyOffers() {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                 <div className="bg-white rounded-lg p-4 shadow-sm border">
                   <div className="text-2xl font-bold text-blue-600">{applications.length}</div>
-                  <div className="text-sm text-gray-500">Total Offers</div>
+                  <div className="text-sm text-gray-500">Total Applications</div>
                 </div>
                 <div className="bg-white rounded-lg p-4 shadow-sm border">
                   <div className="text-2xl font-bold text-yellow-600">
@@ -332,10 +376,9 @@ export default function MyOffers() {
               </div>
             )}
 
-            {/* Filtered Applications: Only show accepted ones */}
+            {/* All Applications */}
             <div className="space-y-4">
               {applications
-                .filter(app => user.role === 'nurse' ? app.status === 'accepted' : true)
                 .map((application) => (
                   <div key={application.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
                     <div className="p-6">
@@ -345,6 +388,17 @@ export default function MyOffers() {
                             <h3 className="text-lg font-semibold text-gray-900">
                               {application.request.title}
                             </h3>
+                            {/* Application Status (for nurses) */}
+                            {user.role === 'nurse' && (
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(application.status)}`}>
+                                <span className="mr-1">{getStatusIcon(application.status)}</span>
+                                {application.status === 'pending' ? 'Pending' :
+                                 application.status === 'accepted' ? 'Accepted' :
+                                 application.status === 'rejected' ? 'Rejected' : application.status}
+                              </span>
+                            )}
+                            
+                            {/* Request Status */}
                             <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(application.request.status)}`}>
                               <span className="mr-1">{getStatusIcon(application.request.status)}</span>
                               {application.request.status === 'in_progress' ? 'In Progress' : 
@@ -353,7 +407,26 @@ export default function MyOffers() {
                             </span>
                           </div>
                           <p className="text-gray-600 mb-3">{application.request.description}</p>
-                          
+
+                          {/* Patient Completion Notification */}
+                          {application.request.patientCompleted && (
+                            <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                              <div className="flex items-center">
+                                <svg className="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div>
+                                  <p className="text-sm font-medium text-green-800">Patient marked as complete</p>
+                                  <p className="text-xs text-green-600">
+                                    {application.request.patientCompletedAt &&
+                                      `Completed on ${new Date(application.request.patientCompletedAt).toLocaleDateString()}`
+                                    }
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
                           {/* Location and Schedule Info */}
                           <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mb-4">
                             {user.role === 'nurse' && (
@@ -529,8 +602,34 @@ export default function MyOffers() {
                         
                         {/* Status indicators */}
                         {application.status === 'pending' && (
-                          <div className="text-sm text-gray-500">
-                            Waiting for response...
+                          <div className="flex items-center space-x-3">
+                            <div className="text-sm text-gray-500">
+                              Waiting for response...
+                            </div>
+                            {user.role === 'nurse' && (
+                              <button
+                                onClick={() => handleCancelApplication(application.id)}
+                                disabled={cancelingId === application.id}
+                                className="inline-flex items-center px-3 py-2 border border-red-300 text-red-700 rounded-md text-sm font-medium hover:bg-red-50 transition-colors disabled:opacity-50"
+                              >
+                                {cancelingId === application.id ? (
+                                  <>
+                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-red-700" fill="none" viewBox="0 0 24 24">
+                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Canceling...
+                                  </>
+                                ) : (
+                                  <>
+                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                    Cancel Application
+                                  </>
+                                )}
+                              </button>
+                            )}
                           </div>
                         )}
                         {application.request.status === 'in_progress' && user.role === 'patient' && (
@@ -548,6 +647,7 @@ export default function MyOffers() {
         )}
       </div>
     </div>
+    
     </Layout>
   );
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useRouter } from 'next/router';
 import { useAuth } from '../../lib/auth';
 import { LoadingSpinner } from '../../components/Layout';
 import { apiService } from '../../lib/api';
@@ -62,6 +63,7 @@ const sidebarItems = [
 
 function RequestsList() {
   const { user } = useAuth();
+  const router = useRouter();
   const [availableRequests, setAvailableRequests] = useState<Request[]>([]);
   const [myRequests, setMyRequests] = useState<Request[]>([]);
   const [myApplications, setMyApplications] = useState<Application[]>([]);
@@ -404,12 +406,14 @@ function RequestsList() {
     try {
       if (confirm('Are you sure you want to mark this request as completed? This action cannot be undone.')) {
         await apiService.markRequestCompletedByNurse(requestId);
-        await loadData(); // Reload to get updated data
         alert('Request marked as completed by nurse. Waiting for patient confirmation.');
+
+        // Redirect to completed requests page
+        router.push('/completed-requests');
       }
     } catch (err: any) {
       console.error('Complete request error:', err);
-      setError(err.message || 'فشل في إكمال الطلب');
+      setError(err.message || 'Failed to complete request');
     }
   };
 
@@ -417,12 +421,14 @@ function RequestsList() {
     try {
       if (confirm('Are you sure you want to mark this request as completed? This action cannot be undone.')) {
         await apiService.markRequestCompletedByPatient(requestId);
-        await loadData(); // Reload to get updated data
         alert('Request marked as completed by patient. Thank you for using our service!');
+
+        // Redirect to patient completed requests page
+        router.push('/patient-completed-requests');
       }
     } catch (err: any) {
       console.error('Complete request error:', err);
-      setError(err.message || 'فشل في إكمال الطلب');
+      setError(err.message || 'Failed to complete request');
     }
   };
 
@@ -643,9 +649,9 @@ function RequestsList() {
                 )}
 
                 {/* My Applications Section - Only for nurses */}
-                {user?.role === 'nurse' && (
+                {/* {user?.role === 'nurse' && (
                   <div>
-                    <h2 className="text-xl font-semibold text-gray-900 mb-6">My Applications</h2>
+                    <h2 className="text-xl font-semibold text-gray-900 mb-6">My Applications xxxx</h2>
                     <div className="space-y-4">
                       {myApplications.length > 0 ? (
                         myApplications.map(application => (
@@ -663,7 +669,7 @@ function RequestsList() {
                       )}
                     </div>
                   </div>
-                )}
+                )} */}
               </div>
             )}
           </div>
@@ -836,6 +842,30 @@ function RequestCard({
             <span className="text-sm font-medium">Application Deadline: {formatDate(request.scheduledDate)}</span>
           </div>
           <h3 className="text-xl font-semibold mb-2">{request.title}</h3>
+
+          {/* Patient Info */}
+          {request.patient && (
+            <div className="flex items-center space-x-3 mb-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-3">
+              <div className="w-10 h-10 rounded-full overflow-hidden bg-white/20 flex items-center justify-center">
+                {request.patient.image ? (
+                  <img
+                    src={request.patient.image}
+                    alt={request.patient.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                )}
+              </div>
+              <div>
+                <p className="font-medium text-white">{request.patient.name}</p>
+                <p className="text-xs text-blue-100">Patient</p>
+              </div>
+            </div>
+          )}
+
           <p className="text-blue-100 mb-4 line-clamp-2">{request.description}</p>
           <div className="text-sm text-blue-100">
             <p>Location: {request.address}</p>
@@ -1282,7 +1312,7 @@ function PatientRequestCard({
       }
     } catch (err: any) {
       console.error('Failed to accept application:', err);
-      alert(`❌ فشل قبول الطلب: ${err.message || 'يرجى المحاولة مرة أخرى لاحقًا.'}`);
+      alert(`❌ Failed to accept application: ${err.message || 'Please try again later.'}`);
     }
   };
 
@@ -1330,13 +1360,13 @@ function PatientRequestCard({
   
   const handleUpdateApplication = async (applicationId: string, price: number, estimatedTime: number) => {
     try {
-      // This would typically call an API endpoint to update the application
-      alert(`Application would be updated with price: $${price} and time: ${estimatedTime}h`);
+      await apiService.updateApplication(applicationId, { price, estimatedTime });
+      alert('✅ Offer updated successfully! The patient has been notified.');
       setEditingApplication(null);
       loadApplications();
     } catch (err: any) {
       console.error('Failed to update application:', err);
-      alert('❌ Failed to update application. Please try again.');
+      alert(`❌ Failed to update application: ${err.message || 'Please try again later.'}`);
     }
   };
   

@@ -160,6 +160,19 @@ const Navbar = () => {
                             Find Nurses
                           </div>
                         </Link>
+
+                        <Link
+                          href="/patient-completed-requests"
+                          className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                          onClick={closeDropdown}
+                        >
+                          <div className="flex items-center">
+                            <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Completed Requests
+                          </div>
+                        </Link>
                       </>
                     )}
 
@@ -179,6 +192,32 @@ const Navbar = () => {
                         </Link>
 
                         <Link
+                          href="/active-requests"
+                          className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                          onClick={closeDropdown}
+                        >
+                          <div className="flex items-center">
+                            <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Active Requests
+                          </div>
+                        </Link>
+
+                        <Link
+                          href="/completed-requests"
+                          className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                          onClick={closeDropdown}
+                        >
+                          <div className="flex items-center">
+                            <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            Completed Requests
+                          </div>
+                        </Link>
+
+                        {/* <Link
                           href="/my-offers"
                           className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
                           onClick={closeDropdown}
@@ -189,9 +228,9 @@ const Navbar = () => {
                             </svg>
                             My Offers
                           </div>
-                        </Link>
+                        </Link> */}
 
-                        <Link
+                        {/* <Link
                           href="/visit-history"
                           className="block px-4 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
                           onClick={closeDropdown}
@@ -202,7 +241,7 @@ const Navbar = () => {
                             </svg>
                             Visit History
                           </div>
-                        </Link>
+                        </Link> */}
                       </>
                     )}
 

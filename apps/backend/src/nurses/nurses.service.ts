@@ -3,6 +3,9 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument, UserRole, UserStatus } from '../schemas/user.schema';
 import { NurseProfile, NurseProfileDocument } from '../schemas/nurse-profile.schema';
+import { PatientRequest, PatientRequestDocument } from '../schemas/patient-request.schema';
+import { Application, ApplicationDocument } from '../schemas/application.schema';
+import { Review, ReviewDocument } from '../schemas/review.schema';
 import { GetNearbyNursesDto } from '../dto/request.dto';
 
 @Injectable()
@@ -10,6 +13,9 @@ export class NursesService {
   constructor(
     @InjectModel(User.name) private userModel: Model<UserDocument>,
     @InjectModel(NurseProfile.name) private nurseProfileModel: Model<NurseProfileDocument>,
+    @InjectModel(PatientRequest.name) private patientRequestModel: Model<PatientRequestDocument>,
+    @InjectModel(Application.name) private applicationModel: Model<ApplicationDocument>,
+    @InjectModel(Review.name) private reviewModel: Model<ReviewDocument>,
   ) {}
 
   async getNearbyNurses(getNearbyNursesDto: GetNearbyNursesDto) {
@@ -292,5 +298,62 @@ export class NursesService {
       message: `Availability ${nurseProfile.isAvailable ? 'enabled' : 'disabled'} successfully`,
       isAvailable: nurseProfile.isAvailable,
     };
+  }
+
+  async getNurseStats(nurseId: string) {
+    try {
+      console.log('🎯 Getting nurse stats for ID:', nurseId);
+
+      // Verify nurse exists
+      const nurse = await this.userModel.findById(nurseId).exec();
+      if (!nurse) {
+        throw new NotFoundException('Nurse not found');
+      }
+
+      // Get completed applications for this nurse
+      const completedApplications = await this.applicationModel
+        .find({
+          nurseId: nurseId,
+          status: 'accepted'
+        })
+        .populate({
+          path: 'requestId',
+          match: { status: 'completed' }
+        })
+        .exec();
+
+      // Filter out applications where the request is not completed
+      const validCompletedApplications = completedApplications.filter(app => app.requestId);
+
+      // Calculate total earnings (sum of prices from completed applications)
+      const totalEarnings = validCompletedApplications.reduce((sum, app) => {
+        return sum + (app.price || 0);
+      }, 0);
+
+      // Get review stats for this nurse
+      const reviews = await this.reviewModel.find({ nurseId: nurseId }).exec();
+      const totalReviews = reviews.length;
+      const averageRating = totalReviews > 0
+        ? reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews
+        : 0;
+
+      const stats = {
+        completedRequests: validCompletedApplications.length,
+        totalEarnings: totalEarnings,
+        averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal place
+        totalReviews: totalReviews
+      };
+
+      console.log('📊 Nurse stats calculated:', stats);
+
+      return {
+        success: true,
+        data: stats
+      };
+
+    } catch (error) {
+      console.error('❌ Error getting nurse stats:', error);
+      throw error;
+    }
   }
 }

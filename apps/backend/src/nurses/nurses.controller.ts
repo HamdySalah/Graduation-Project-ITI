@@ -22,6 +22,13 @@ export class NursesController {
     return { isAvailable: req.user.isAvailable || false };
   }
 
+  @Get(':id/stats')
+  @UseGuards(JwtAuthGuard)
+  async getNurseStats(@Param('id') nurseId: string) {
+    console.log('🎯 NursesController.getNurseStats called with ID:', nurseId);
+    return this.nursesService.getNurseStats(nurseId);
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   async getNurseById(@Param('id') nurseId: string) {
