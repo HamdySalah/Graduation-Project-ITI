@@ -79,7 +79,7 @@ function MyApp({ Component, pageProps }: AppProps) {
     '/settings',
     '/profile',
     '/patient-completed-requests',
-    '/messages',
+
     '/payments',
     '/help',
     '/nurses'

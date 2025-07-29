@@ -1,8 +1,7 @@
 import React from 'react';
 import { useAuth } from '../lib/auth';
-import Layout from '../components/Layout';
+import CommonLayout from '../components/CommonLayout';
 import Link from 'next/link';
-import PatientLayout from '../components/PatientLayout';
 
 interface SettingsSection {
   id: string;
@@ -169,21 +168,27 @@ export default function Settings() {
   );
 
   return (
-    <PatientLayout activeItem="settings" title="Settings">
-      <div className="max-w-4xl">
+    <CommonLayout activeItem="settings" allowedRoles={['patient', 'nurse']}>
+      <div className="p-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+          <p className="text-gray-600 mt-2">Manage your account preferences and settings</p>
+        </div>
 
-            {/* Account Section */}
-            {renderSettingsSection('Account', accountSettings)}
+        <div className="max-w-4xl">
+          {/* Account Section */}
+          {renderSettingsSection('Account', accountSettings)}
 
-            {/* Preferences Section */}
-            {renderSettingsSection('Preferences', preferencesSettings)}
+          {/* Preferences Section */}
+          {renderSettingsSection('Preferences', preferencesSettings)}
 
-            {/* Security Section */}
-            {renderSettingsSection('Security', securitySettings)}
+          {/* Security Section */}
+          {renderSettingsSection('Security', securitySettings)}
 
-            {/* Legal Section */}
-            {renderSettingsSection('Legal', legalSettings)}
+          {/* Legal Section */}
+          {renderSettingsSection('Legal', legalSettings)}
+        </div>
       </div>
-    </PatientLayout>
+    </CommonLayout>
   );
 }

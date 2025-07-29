@@ -1,7 +1,31 @@
 import { useEffect, useState } from 'react';
 import { useAuth, User } from '../lib/auth';
-import Layout, { Card, LoadingSpinner, StatusBadge } from '../components/Layout';
+import CommonLayout from '../components/CommonLayout';
 import { apiService } from '../lib/api';
+
+// Helper components
+const Card = ({ children, className = '' }: { children: React.ReactNode; className?: string }) => (
+  <div className={`bg-white rounded-lg shadow-sm border border-gray-200 ${className}`}>
+    {children}
+  </div>
+);
+
+const StatusBadge = ({ status }: { status: string }) => {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'verified': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  return (
+    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(status)}`}>
+      {status.charAt(0).toUpperCase() + status.slice(1)}
+    </span>
+  );
+};
 
 const SPECIALIZATIONS = [
   { value: 'general', label: 'General Nursing' },
@@ -127,15 +151,18 @@ export default function Profile() {
 
   if (!user) {
     return (
-      <Layout>
-        <LoadingSpinner />
-      </Layout>
+      <CommonLayout activeItem="profile" allowedRoles={['patient', 'nurse']}>
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </CommonLayout>
     );
   }
 
   return (
-    <Layout title="My Profile">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <CommonLayout activeItem="profile" allowedRoles={['patient', 'nurse']}>
+      <div className="p-6">
+        <div className="max-w-4xl mx-auto space-y-6">
         {/* Profile Header */}
         <Card className="p-6">
           <div className="flex justify-between items-start mb-4">
@@ -427,7 +454,8 @@ export default function Profile() {
             )}
           </div>
         )}
+        </div>
       </div>
-    </Layout>
+    </CommonLayout>
   );
 }

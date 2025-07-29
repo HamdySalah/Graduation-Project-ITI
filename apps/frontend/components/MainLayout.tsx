@@ -62,16 +62,16 @@ export default function MainLayout({ children, activeItem, skipSidebar = false }
   if (user.role === 'nurse') {
     if (pathname === '/dashboard' || pathname === '/') currentActiveItem = 'dashboard';
     else if (pathname === '/requests') currentActiveItem = 'requests';
-    else if (pathname.startsWith('/active-requests')) currentActiveItem = 'active-requests';
-    else if (pathname.startsWith('/applications')) currentActiveItem = 'applications';
-    else if (pathname.startsWith('/schedule')) currentActiveItem = 'schedule';
+    else if (pathname.startsWith('/active-requests') || (pathname.startsWith('/my-offers') && router.query.filter === 'accepted')) currentActiveItem = 'active-requests';
+    else if (pathname.startsWith('/applications') || pathname.startsWith('/my-offers')) currentActiveItem = 'applications';
+
     else if (pathname.startsWith('/completed-jobs')) currentActiveItem = 'completed-jobs';
     else if (pathname.startsWith('/notifications')) currentActiveItem = 'notifications';
     else if (pathname.startsWith('/payments')) currentActiveItem = 'payments';
-    else if (pathname.startsWith('/messages')) currentActiveItem = 'messages';
+
     else if (pathname.startsWith('/profile')) currentActiveItem = 'profile';
     else if (pathname.startsWith('/settings')) currentActiveItem = 'settings';
-    else if (pathname.startsWith('/help')) currentActiveItem = 'help';
+
   } else {
     if (pathname === '/dashboard' || pathname === '/') currentActiveItem = 'dashboard';
     else if (pathname.startsWith('/requests')) currentActiveItem = 'requests';
@@ -79,10 +79,10 @@ export default function MainLayout({ children, activeItem, skipSidebar = false }
     else if (pathname === '/patient-completed-requests') currentActiveItem = 'completed-requests';
     else if (pathname.startsWith('/notifications')) currentActiveItem = 'notifications';
     else if (pathname.startsWith('/payments')) currentActiveItem = 'payments';
-    else if (pathname.startsWith('/messages')) currentActiveItem = 'messages';
+
     else if (pathname.startsWith('/profile')) currentActiveItem = 'profile';
     else if (pathname.startsWith('/settings')) currentActiveItem = 'settings';
-    else if (pathname.startsWith('/help')) currentActiveItem = 'help';
+
   }
 
   return (
