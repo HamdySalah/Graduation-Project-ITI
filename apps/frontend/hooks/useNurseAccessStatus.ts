@@ -93,8 +93,8 @@ export function useNurseAccessStatus() {
         const fallbackStatus: NurseAccessStatus = {
           canAccessPlatform: user.status === 'verified',
           canAccessDashboard: user.status === 'verified',
-          canViewRequests: user.status === 'verified',
-          canCreateRequests: user.status === 'verified',
+          canViewRequests: user.status === 'verified' || user.status === 'pending', // Allow pending nurses to view requests
+          canCreateRequests: user.status === 'verified', // Still require verification to accept/create requests
           canAccessProfile: true,
           profileCompletionStatus: user.status === 'verified' ? 'approved' :
                                   user.status === 'rejected' ? 'rejected' : 'not_started',
@@ -146,8 +146,8 @@ export function useNurseAccessStatus() {
       const fallbackStatus: NurseAccessStatus = {
         canAccessPlatform: user.status === 'verified',
         canAccessDashboard: user.status === 'verified',
-        canViewRequests: user.status === 'verified',
-        canCreateRequests: user.status === 'verified',
+        canViewRequests: user.status === 'verified' || user.status === 'pending', // Allow pending nurses to view requests
+        canCreateRequests: user.status === 'verified', // Still require verification to accept/create requests
         canAccessProfile: true,
         profileCompletionStatus: user.status === 'verified' ? 'approved' : 'not_started',
         redirectTo: user.status === 'verified' ? undefined : '/nurse-profile-complete',
@@ -186,10 +186,16 @@ export function useNurseAccessStatus() {
 
       // Fallback logic if API is not available
       console.warn(`Feature access API not available for ${feature}, using fallback logic`);
+      if (feature === 'requests') {
+        return user.status === 'verified' || user.status === 'pending'; // Allow pending nurses to view requests
+      }
       return user.status === 'verified';
     } catch (err) {
       console.error(`Error checking access for feature ${feature}:`, err);
       // Fallback to user status
+      if (feature === 'requests') {
+        return user.status === 'verified' || user.status === 'pending'; // Allow pending nurses to view requests
+      }
       return user.status === 'verified';
     }
   }, [user]);

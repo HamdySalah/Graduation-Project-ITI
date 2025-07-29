@@ -588,15 +588,35 @@ class ApiService {
 
   async getApplicationsByNurse() {
     try {
-      console.log('Fetching nurse applications');
+      console.log('Fetching nurse applications from:', `${API_BASE_URL}/api/applications/nurse`);
+
+      const headers = this.getAuthHeaders();
+      console.log('Request headers:', headers);
+
       const response = await fetch(`${API_BASE_URL}/api/applications/nurse`, {
-        headers: this.getAuthHeaders(),
+        headers: headers,
       });
+
+      console.log('Applications response status:', response.status);
+      console.log('Applications response headers:', response.headers);
+
+      if (response.status === 500) {
+        console.error('Server error (500) when fetching applications');
+        // Return empty array instead of throwing error for better UX
+        return [];
+      }
+
+      if (response.status === 401) {
+        return this.handleAuthError('nurse_applications');
+      }
 
       return this.handleResponse(response);
     } catch (error) {
       console.error('Get nurse applications error:', error);
-      throw error;
+
+      // For development, return empty array instead of throwing
+      console.warn('Returning empty applications array due to error');
+      return [];
     }
   }
   
@@ -647,12 +667,27 @@ class ApiService {
   async updateApplication(applicationId: string, data: { price: number, estimatedTime: number }) {
     try {
       console.log(`Updating application ${applicationId} details:`, data);
+
+      // Validate input data
+      if (!data.price || data.price <= 0) {
+        throw new Error('Price must be greater than 0');
+      }
+      if (!data.estimatedTime || data.estimatedTime <= 0) {
+        throw new Error('Estimated time must be greater than 0');
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/applications/${applicationId}`, {
         method: 'PUT',
         headers: this.getAuthHeaders(),
         body: JSON.stringify(data),
       });
-      
+
+      console.log('Update application response status:', response.status);
+
+      if (response.status === 401) {
+        return this.handleAuthError('application_update');
+      }
+
       return this.handleResponse(response);
     } catch (error) {
       console.error('Update application error:', error);
@@ -712,10 +747,21 @@ class ApiService {
   async cancelApplication(applicationId: string) {
     try {
       console.log(`Cancelling application ${applicationId}`);
+
+      if (!applicationId) {
+        throw new Error('Application ID is required');
+      }
+
       const response = await fetch(`${API_BASE_URL}/api/applications/${applicationId}`, {
         method: 'DELETE',
         headers: this.getAuthHeaders(),
       });
+
+      console.log('Cancel application response status:', response.status);
+
+      if (response.status === 401) {
+        return this.handleAuthError('application_cancel');
+      }
 
       // Handle errors first
       if (!response.ok) {

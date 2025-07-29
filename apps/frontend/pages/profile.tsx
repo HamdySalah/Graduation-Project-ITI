@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth, User } from '../lib/auth';
 import CommonLayout from '../components/CommonLayout';
+import UserRatingDisplay from '../components/UserRatingDisplay';
 import { apiService } from '../lib/api';
 
 // Helper components
@@ -454,6 +455,17 @@ export default function Profile() {
             )}
           </div>
         )}
+
+        {/* User Ratings Section */}
+        <div className="mt-8">
+          <UserRatingDisplay
+            userId={user.id}
+            userName={user.name}
+            userRole={user.role as 'patient' | 'nurse'}
+            showReviews={true}
+            showStats={true}
+          />
+        </div>
         </div>
       </div>
     </CommonLayout>

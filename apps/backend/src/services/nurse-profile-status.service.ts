@@ -86,6 +86,11 @@ export class NurseProfileStatusService {
       };
     }
 
+    // Allow pending nurses to view requests (but not accept them)
+    if (user.status === UserStatus.PENDING) {
+      baseStatus.canViewRequests = true;
+    }
+
     // If user is rejected, deny all access
     if (user.status === UserStatus.REJECTED) {
       return {

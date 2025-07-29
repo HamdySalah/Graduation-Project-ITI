@@ -83,7 +83,7 @@ class ReviewApiService {
 
   async getReviews(query: GetReviewsQuery = {}): Promise<GetReviewsResponse> {
     const params = new URLSearchParams();
-    
+
     if (query.requestId) params.append('requestId', query.requestId);
     if (query.reviewerId) params.append('reviewerId', query.reviewerId);
     if (query.revieweeId) params.append('revieweeId', query.revieweeId);
@@ -92,42 +92,169 @@ class ReviewApiService {
     if (query.limit) params.append('limit', query.limit.toString());
 
     const url = params.toString() ? `${this.baseUrl}?${params.toString()}` : this.baseUrl;
-    const response = await apiService.get(url);
-    return response.data;
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(typeof window !== 'undefined' && localStorage.getItem('token') && {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }),
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return result.data || result;
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+      return { data: [], total: 0, page: 1, limit: 10 };
+    }
   }
 
   async getReviewsByRequest(requestId: string): Promise<Review[]> {
-    const response = await apiService.get(`${this.baseUrl}/request/${requestId}`);
-    return response.data;
+    try {
+      const response = await fetch(`${this.baseUrl}/request/${requestId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(typeof window !== 'undefined' && localStorage.getItem('token') && {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }),
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return result.data || result;
+    } catch (error) {
+      console.error('Error fetching reviews by request:', error);
+      return [];
+    }
   }
 
   async getReviewStats(userId: string, reviewType?: 'user_to_user' | 'service_review'): Promise<ReviewStats> {
     const params = reviewType ? `?reviewType=${reviewType}` : '';
-    const response = await apiService.get(`${this.baseUrl}/stats/${userId}${params}`);
-    return response.data;
+
+    try {
+      const response = await fetch(`${this.baseUrl}/stats/${userId}${params}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(typeof window !== 'undefined' && localStorage.getItem('token') && {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }),
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return result.data || result;
+    } catch (error) {
+      console.error('Error fetching review stats:', error);
+      return {
+        averageRating: 0,
+        totalReviews: 0,
+        ratingDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+      };
+    }
   }
 
   async canUserReview(
-    requestId: string, 
-    reviewType: 'user_to_user' | 'service_review', 
+    requestId: string,
+    reviewType: 'user_to_user' | 'service_review',
     revieweeId?: string
   ): Promise<CanReviewResponse> {
     const params = new URLSearchParams();
     params.append('reviewType', reviewType);
     if (revieweeId) params.append('revieweeId', revieweeId);
 
-    const response = await apiService.get(`${this.baseUrl}/can-review/${requestId}?${params.toString()}`);
-    return response.data;
+    try {
+      const response = await fetch(`${this.baseUrl}/can-review/${requestId}?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(typeof window !== 'undefined' && localStorage.getItem('token') && {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }),
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return result.data || result;
+    } catch (error) {
+      console.error('Error checking if user can review:', error);
+      return { canReview: false, reason: 'Error checking review eligibility' };
+    }
   }
 
   async updateReview(reviewId: string, data: UpdateReviewRequest): Promise<Review> {
-    const response = await apiService.put(`${this.baseUrl}/${reviewId}`, data);
-    return response.data;
+    try {
+      const response = await fetch(`${this.baseUrl}/${reviewId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(typeof window !== 'undefined' && localStorage.getItem('token') && {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }),
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return result.data || result;
+    } catch (error) {
+      console.error('Error updating review:', error);
+      throw error;
+    }
   }
 
   async deleteReview(reviewId: string): Promise<{ message: string }> {
-    const response = await apiService.delete(`${this.baseUrl}/${reviewId}`);
-    return response.data;
+    try {
+      const response = await fetch(`${this.baseUrl}/${reviewId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(typeof window !== 'undefined' && localStorage.getItem('token') && {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }),
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return result.data || result;
+    } catch (error) {
+      console.error('Error deleting review:', error);
+      throw error;
+    }
   }
 
   // Helper methods for common use cases

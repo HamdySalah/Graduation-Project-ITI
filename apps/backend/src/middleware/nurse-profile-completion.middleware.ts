@@ -57,12 +57,24 @@ export class NurseProfileCompletionMiddleware implements NestMiddleware {
       }
 
       // Check specific feature access for certain endpoints
-      if (req.path.startsWith('/api/requests') && !accessStatus.canViewRequests) {
-        throw new ForbiddenException({
-          message: 'Complete your profile to access requests',
-          redirectTo: '/nurse-profile-complete',
-          statusCode: 403,
-        });
+      // Allow viewing requests for pending nurses, but restrict accepting/creating requests
+      if (req.path.startsWith('/api/requests')) {
+        // Allow GET requests (viewing) for pending nurses
+        if (req.method === 'GET' && !accessStatus.canViewRequests) {
+          throw new ForbiddenException({
+            message: 'Complete your profile to view requests',
+            redirectTo: '/nurse-profile-complete',
+            statusCode: 403,
+          });
+        }
+        // Restrict POST/PUT/PATCH (accepting/creating) to verified nurses only
+        if (['POST', 'PUT', 'PATCH'].includes(req.method) && !accessStatus.canCreateRequests) {
+          throw new ForbiddenException({
+            message: 'Complete your profile verification to accept requests',
+            redirectTo: '/nurse-profile-complete',
+            statusCode: 403,
+          });
+        }
       }
 
       if (req.path.startsWith('/api/nurses') && !accessStatus.canAccessPlatform) {

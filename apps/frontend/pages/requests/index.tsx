@@ -3,9 +3,10 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../../lib/auth';
 import { LoadingSpinner } from '../../components/Layout';
 import { apiService } from '../../lib/api';
+import CommonLayout from '../../components/CommonLayout';
+import RatingComponent from '../../components/RatingComponent';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import PatientLayout from '../../components/PatientLayout';
 
 interface Request {
   id: string;
@@ -70,6 +71,7 @@ function RequestsList() {
   const [dateFilter, setDateFilter] = useState('');
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [editingApplication, setEditingApplication] = useState<Application | null>(null);
+  const [selectedRequestForRating, setSelectedRequestForRating] = useState<Request | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -111,7 +113,7 @@ function RequestsList() {
           const requestsData = await apiService.getRequests();
           console.log('Received nurse requests:', requestsData);
           const available = Array.isArray(requestsData)
-            ? requestsData.filter(req => req.status === 'pending' || req.status === 'open')
+            ? requestsData.filter(req => req.status === 'pending')
             : [];
           setAvailableRequests(available);
 
@@ -318,66 +320,84 @@ function RequestsList() {
 
   const handleCancelApplication = async (applicationId: string) => {
     try {
+      console.log('🗑️ Cancel application requested for ID:', applicationId);
+
+      if (!applicationId) {
+        throw new Error('Application ID is required');
+      }
+
       if (confirm('Are you sure you want to cancel this application? The patient will be notified.')) {
-        console.log('Cancelling application with ID:', applicationId);
-        
-        // First update UI optimistically
+        console.log('✅ User confirmed cancellation for application:', applicationId);
+
+        // Make API call first to ensure it's valid
+        await apiService.cancelApplication(applicationId);
+        console.log('✅ Application cancelled successfully on server');
+
+        // Update UI after successful API call
         const updatedApplications = myApplications.filter(app => app.id !== applicationId);
         setMyApplications(updatedApplications);
-        
+
         // Update localStorage to maintain consistent state
         try {
           localStorage.setItem('nurse_applications', JSON.stringify(updatedApplications));
-          console.log('Updated localStorage after cancellation');
+          console.log('✅ Updated localStorage after cancellation');
         } catch (storageErr) {
-          console.error('Failed to update localStorage:', storageErr);
+          console.error('⚠️ Failed to update localStorage:', storageErr);
         }
-        
-        // Then make API call
-        await apiService.cancelApplication(applicationId);
-        console.log('✅ Application cancelled successfully on server');
-        
-        // Don't reload data as it may override our local state
-        // Just show a confirmation to the user
+
+        // Show success message
         alert('✅ Application cancelled successfully! You can apply again if needed.');
+
+        // Reload data to ensure consistency
+        loadData(false);
+      } else {
+        console.log('❌ User cancelled the cancellation');
       }
     } catch (err: any) {
-      console.error('Error cancelling application:', err);
-      setError(err.message || 'Failed to cancel application');
-      
+      console.error('❌ Error cancelling application:', err);
+      const errorMessage = err.message || 'Failed to cancel application';
+      setError(errorMessage);
+
       // Handle specific error cases
-      if (err.message && err.message.includes('cannot be canceled')) {
-        alert('This application cannot be cancelled because it has already been accepted');
-      } else if (err.message && err.message.includes('permission')) {
-        alert(err.message);
+      if (errorMessage.includes('cannot be cancelled') || errorMessage.includes('cannot be canceled')) {
+        alert('❌ This application cannot be cancelled because it has already been processed.');
+      } else if (errorMessage.includes('permission') || errorMessage.includes('not found')) {
+        alert(`❌ ${errorMessage}`);
       } else {
-        alert(`Failed to cancel application: ${err.message || 'Unknown error occurred'}`);
+        alert(`❌ Failed to cancel application: ${errorMessage}`);
       }
-      
-      // Only reload data if we encountered an API error
-      try {
-        const storedApps = localStorage.getItem('nurse_applications');
-        if (storedApps) {
-          setMyApplications(JSON.parse(storedApps));
-        } else {
-          // If no local storage, then reload from server
-          loadData(false);
-        }
-      } catch (e) {
-        console.error('Failed to restore applications state:', e);
-        loadData(false);
-      }
+
+      // Reload data to ensure UI is in sync with server
+      loadData(false);
     }
   };
 
   const handleUpdateApplication = async (applicationId: string, price: number, estimatedTime: number) => {
     try {
-      await apiService.updateApplication(applicationId, { price, estimatedTime });
+      console.log('🔄 Updating application:', { applicationId, price, estimatedTime });
+
+      // Validate inputs
+      if (!applicationId) {
+        throw new Error('Application ID is required');
+      }
+      if (!price || price <= 0) {
+        throw new Error('Price must be greater than 0');
+      }
+      if (!estimatedTime || estimatedTime <= 0) {
+        throw new Error('Estimated time must be greater than 0');
+      }
+
+      const result = await apiService.updateApplication(applicationId, { price, estimatedTime });
+      console.log('✅ Application updated successfully:', result);
+
       alert('✅ Offer updated successfully! The patient has been notified.');
       setEditingApplication(null);
       loadData(); // Reload to get updated data
     } catch (err: any) {
-      setError(err.message || 'Failed to update application');
+      console.error('❌ Failed to update application:', err);
+      const errorMessage = err.message || 'Failed to update application';
+      setError(errorMessage);
+      alert(`❌ Failed to update offer: ${errorMessage}`);
     }
   };
 
@@ -404,31 +424,65 @@ function RequestsList() {
 
   const handleCompleteByNurse = async (requestId: string) => {
     try {
+      console.log('🏥 Nurse completing request:', requestId);
+
       if (confirm('Are you sure you want to mark this request as completed? This action cannot be undone.')) {
-        await apiService.markRequestCompletedByNurse(requestId);
+        console.log('✅ User confirmed completion');
+
+        // Mark as completed via API
+        const result = await apiService.markRequestCompletedByNurse(requestId);
+        console.log('✅ API response:', result);
+
         alert('Request marked as completed by nurse. Waiting for patient confirmation.');
 
+        // Reload data to ensure UI is updated
+        await loadData(false);
+        console.log('✅ Data reloaded');
+
         // Redirect to completed requests page
-        router.push('/completed-requests');
+        console.log('🔄 Redirecting to completed requests...');
+        await router.push('/completed-requests');
+        console.log('✅ Redirect completed');
+      } else {
+        console.log('❌ User cancelled completion');
       }
     } catch (err: any) {
-      console.error('Complete request error:', err);
-      setError(err.message || 'Failed to complete request');
+      console.error('❌ Complete request error:', err);
+      const errorMessage = err.message || 'Failed to complete request';
+      setError(errorMessage);
+      alert(`❌ Failed to complete request: ${errorMessage}`);
     }
   };
 
   const handleCompleteByPatient = async (requestId: string) => {
     try {
+      console.log('🏥 Patient completing request:', requestId);
+
       if (confirm('Are you sure you want to mark this request as completed? This action cannot be undone.')) {
-        await apiService.markRequestCompletedByPatient(requestId);
+        console.log('✅ User confirmed completion');
+
+        // Mark as completed via API
+        const result = await apiService.markRequestCompletedByPatient(requestId);
+        console.log('✅ API response:', result);
+
         alert('Request marked as completed by patient. Thank you for using our service!');
 
+        // Reload data to ensure UI is updated
+        await loadData(false);
+        console.log('✅ Data reloaded');
+
         // Redirect to patient completed requests page
-        router.push('/patient-completed-requests');
+        console.log('🔄 Redirecting to patient completed requests...');
+        await router.push('/patient-completed-requests');
+        console.log('✅ Redirect completed');
+      } else {
+        console.log('❌ User cancelled completion');
       }
     } catch (err: any) {
-      console.error('Complete request error:', err);
-      setError(err.message || 'Failed to complete request');
+      console.error('❌ Complete request error:', err);
+      const errorMessage = err.message || 'Failed to complete request';
+      setError(errorMessage);
+      alert(`❌ Failed to complete request: ${errorMessage}`);
     }
   };
 
@@ -467,8 +521,20 @@ function RequestsList() {
   }
 
   return (
-    <PatientLayout activeItem="requests" title={user?.role === 'patient' ? 'My Requests' : 'Requests'}>
-      <div className="max-w-6xl">
+    <CommonLayout activeItem="requests" allowedRoles={['patient', 'nurse']}>
+      <div className="p-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">
+            {user?.role === 'patient' ? 'My Requests' : 'Available Requests'}
+          </h1>
+          <p className="text-gray-600 mt-2">
+            {user?.role === 'patient'
+              ? 'Manage your nursing service requests'
+              : 'Browse and apply to available nursing requests'
+            }
+          </p>
+        </div>
+        <div className="max-w-6xl">
         {/* Header Description */}
         <div className="mb-8">
           <p className="text-gray-600">
@@ -633,8 +699,46 @@ function RequestsList() {
                 )} */}
               </div>
             )}
+        </div>
+
+        {/* Rating Modal */}
+        {selectedRequestForRating && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-gray-900">
+                  Reviews for: {selectedRequestForRating.title}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setSelectedRequestForRating(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                  aria-label="Close modal"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="max-h-96 overflow-y-auto">
+                <RatingComponent
+                  requestId={selectedRequestForRating.id}
+                  requestTitle={selectedRequestForRating.title}
+                  otherPartyId={selectedRequestForRating.nurse?.id}
+                  otherPartyName={selectedRequestForRating.nurse?.name}
+                  otherPartyRole="nurse"
+                  onReviewSubmitted={() => {
+                    // Optionally refresh the request data or show success message
+                    console.log('Review submitted successfully');
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-    </PatientLayout>
+    </CommonLayout>
   );
 }
 
@@ -1682,15 +1786,16 @@ function PatientRequestCard({
 
           {/* Reviews button for completed requests */}
           {request.status === 'completed' && (
-            <Link
-              href={`/requests/${request.id}/reviews`}
+            <button
+              type="button"
+              onClick={() => setSelectedRequestForRating(request)}
               className="inline-flex items-center px-3 py-2 border border-purple-300 rounded-md text-sm font-medium text-purple-700 bg-white hover:bg-purple-50 transition-colors"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
               </svg>
               Reviews
-            </Link>
+            </button>
           )}
         </div>
         {/* Edit Application Modal */}

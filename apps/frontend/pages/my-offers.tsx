@@ -4,7 +4,7 @@ import { useAuth } from '../lib/auth';
 import { apiService } from '../lib/api';
 import Link from 'next/link';
 import Layout from '../components/Layout';
-import { LoadingSpinner } from '../components/Layou';
+import { LoadingSpinner } from '../components/Layout';
 
 interface Application {
   id: string;
@@ -67,11 +67,46 @@ export default function MyOffers() {
   const [error, setError] = useState<string | null>(null);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
   const [processing, setProcessing] = useState<string | null>(null);
+  const [editingApplication, setEditingApplication] = useState<Application | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const router = useRouter();
+
+  // Health check function to test backend connectivity
+  const testBackendHealth = async () => {
+    try {
+      console.log('🏥 Testing backend health...');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/auth/profile`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(typeof window !== 'undefined' && localStorage.getItem('token') && {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }),
+        },
+      });
+
+      console.log('🏥 Backend health check response:', response.status);
+      return response.status < 500; // Return true if not a server error
+    } catch (error) {
+      console.error('🏥 Backend health check failed:', error);
+      return false;
+    }
+  };
 
   useEffect(() => {
     if (user) {
-      loadData();
+      // Test backend health first, then load data
+      testBackendHealth().then(isHealthy => {
+        if (isHealthy) {
+          console.log('✅ Backend is healthy, loading data...');
+          loadData();
+        } else {
+          console.error('❌ Backend health check failed');
+          setError('Server is currently unavailable. Please try again later.');
+          setLoading(false);
+        }
+      });
     }
   }, [user]);
 
@@ -79,12 +114,19 @@ export default function MyOffers() {
     try {
       setLoading(true);
       setError('');
-      
+
+      console.log('🔍 Starting loadData...');
+      console.log('🔍 User object:', user);
+      console.log('🔍 User authenticated:', !!user);
+      console.log('🔍 User role:', user?.role);
+      console.log('🔍 User ID:', user?.id);
+
       if (!user) {
+        console.error('❌ User not authenticated');
         throw new Error('User not authenticated');
       }
 
-      console.log(`Loading data for ${user.role} with ID ${user.id}`);
+      console.log(`✅ Loading data for ${user.role} with ID ${user.id}`);
 
       if (user.role === 'nurse') {
         // For nurses, load all applications they've made (pending, accepted, rejected)
@@ -105,7 +147,17 @@ export default function MyOffers() {
           }
         } catch (apiError: any) {
           console.error('API error when fetching nurse applications:', apiError);
-          setError(`Failed to load applications: ${apiError.message}`);
+          console.error('Error details:', {
+            message: apiError.message,
+            stack: apiError.stack,
+            name: apiError.name,
+            code: apiError.code,
+            status: apiError.status
+          });
+
+          // Show more detailed error information
+          const errorMessage = apiError.userMessage || apiError.message || 'Unknown error occurred';
+          setError(`Failed to load applications: ${errorMessage}`);
           setApplications([]);
         }
       } else if (user.role === 'patient') {
@@ -139,13 +191,46 @@ export default function MyOffers() {
           setApplications(formattedRequests);
         } catch (apiError: any) {
           console.error('API error when fetching patient requests:', apiError);
-          setError(`Failed to load requests: ${apiError.message}`);
+          console.error('Error details:', {
+            message: apiError.message,
+            stack: apiError.stack,
+            name: apiError.name,
+            code: apiError.code,
+            status: apiError.status
+          });
+
+          // Show more detailed error information
+          const errorMessage = apiError.userMessage || apiError.message || 'Unknown error occurred';
+          setError(`Failed to load requests: ${errorMessage}`);
           setApplications([]);
         }
       }
     } catch (err: any) {
-      console.error('Error in loadData:', err);
-      setError(err.message || 'Failed to load data');
+      console.error('❌ Error in loadData:', err);
+      console.error('❌ Error details:', {
+        message: err.message,
+        stack: err.stack,
+        name: err.name,
+        code: err.code,
+        status: err.status,
+        userMessage: err.userMessage
+      });
+
+      // Handle specific error types
+      let errorMessage = 'Failed to load data';
+      if (err.userMessage) {
+        errorMessage = err.userMessage;
+      } else if (err.message) {
+        if (err.message.includes('Internal server error')) {
+          errorMessage = 'Server is temporarily unavailable. Please try again in a few moments.';
+        } else if (err.message.includes('Network')) {
+          errorMessage = 'Network connection issue. Please check your internet connection.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+
+      setError(errorMessage);
       setApplications([]);
     } finally {
       setLoading(false);
@@ -166,16 +251,32 @@ export default function MyOffers() {
   const handleCompleteByNurse = async (requestId: string) => {
     try {
       setProcessing(requestId);
+      console.log('🏥 Nurse completing request:', requestId);
+
       if (confirm('Are you sure you want to mark this request as completed? This action cannot be undone.')) {
-        await apiService.markRequestCompletedByNurse(requestId);
+        console.log('✅ User confirmed completion');
+
+        // Mark as completed via API
+        const result = await apiService.markRequestCompletedByNurse(requestId);
+        console.log('✅ API response:', result);
+
         alert('Request marked as completed by nurse. Waiting for patient confirmation.');
 
+        // Reload data to ensure UI is updated
+        await loadData();
+        console.log('✅ Data reloaded');
+
         // Redirect to completed requests page
-        router.push('/completed-requests');
+        console.log('🔄 Redirecting to completed requests...');
+        await router.push('/completed-requests');
+        console.log('✅ Redirect completed');
+      } else {
+        console.log('❌ User cancelled completion');
       }
     } catch (err: any) {
-      console.error('Complete request error:', err);
-      alert(`Failed to complete request: ${err.message}`);
+      console.error('❌ Complete request error:', err);
+      const errorMessage = err.message || 'Failed to complete request';
+      alert(`❌ Failed to complete request: ${errorMessage}`);
     } finally {
       setProcessing(null);
     }
@@ -185,16 +286,32 @@ export default function MyOffers() {
   const handleCompleteByPatient = async (requestId: string) => {
     try {
       setProcessing(requestId);
+      console.log('🏥 Patient completing request:', requestId);
+
       if (confirm('Are you sure you want to mark this request as completed? This action will finalize the service.')) {
-        await apiService.markRequestCompletedByPatient(requestId);
+        console.log('✅ User confirmed completion');
+
+        // Mark as completed via API
+        const result = await apiService.markRequestCompletedByPatient(requestId);
+        console.log('✅ API response:', result);
+
         alert('Request marked as completed. Thank you for using our service!');
 
+        // Reload data to ensure UI is updated
+        await loadData();
+        console.log('✅ Data reloaded');
+
         // Redirect to patient completed requests page
-        router.push('/patient-completed-requests');
+        console.log('🔄 Redirecting to patient completed requests...');
+        await router.push('/patient-completed-requests');
+        console.log('✅ Redirect completed');
+      } else {
+        console.log('❌ User cancelled completion');
       }
     } catch (err: any) {
-      console.error('Complete request error:', err);
-      alert(`Failed to complete request: ${err.message}`);
+      console.error('❌ Complete request error:', err);
+      const errorMessage = err.message || 'Failed to complete request';
+      alert(`❌ Failed to complete request: ${errorMessage}`);
     } finally {
       setProcessing(null);
     }
@@ -214,6 +331,22 @@ export default function MyOffers() {
       alert(`Failed to cancel application: ${err.message}`);
     } finally {
       setCancelingId(null);
+    }
+  };
+
+  // Handler for nurse to edit a pending application
+  const handleUpdateApplication = async (applicationId: string, price: number, estimatedTime: number) => {
+    try {
+      console.log('🔄 Updating application:', { applicationId, price, estimatedTime });
+
+      await apiService.updateApplication(applicationId, { price, estimatedTime });
+      alert('✅ Offer updated successfully! The patient has been notified.');
+      setEditingApplication(null);
+      await loadData(); // Reload to get updated data
+    } catch (err: any) {
+      console.error('❌ Failed to update application:', err);
+      const errorMessage = err.message || 'Failed to update application';
+      alert(`❌ Failed to update offer: ${errorMessage}`);
     }
   };
 
@@ -313,7 +446,8 @@ export default function MyOffers() {
         ) : error ? (
           <div className="text-center py-12">
             <p className="text-red-600 mb-4">{error}</p>
-            <button 
+            <button
+              type="button"
               onClick={loadData}
               className="text-blue-600 hover:text-blue-800"
             >
@@ -541,6 +675,7 @@ export default function MyOffers() {
                           {user.role === 'nurse' && application.status === 'accepted' && application.request.status === 'in_progress' && (
                             <>
                               <button
+                                type="button"
                                 onClick={() => handleCompleteByNurse(application.request.id)}
                                 disabled={processing === application.request.id}
                                 className="inline-flex items-center px-3 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors disabled:bg-blue-300"
@@ -569,6 +704,7 @@ export default function MyOffers() {
                           {user.role === 'patient' && application.request.status === 'nurse_completed' && (
                             <>
                               <button
+                                type="button"
                                 onClick={() => handleCompleteByPatient(application.request.id)}
                                 disabled={processing === application.request.id}
                                 className="inline-flex items-center px-3 py-2 bg-green-600 text-white rounded-md text-sm font-medium hover:bg-green-700 transition-colors disabled:bg-green-300"
@@ -607,28 +743,42 @@ export default function MyOffers() {
                               Waiting for response...
                             </div>
                             {user.role === 'nurse' && (
-                              <button
-                                onClick={() => handleCancelApplication(application.id)}
-                                disabled={cancelingId === application.id}
-                                className="inline-flex items-center px-3 py-2 border border-red-300 text-red-700 rounded-md text-sm font-medium hover:bg-red-50 transition-colors disabled:opacity-50"
-                              >
-                                {cancelingId === application.id ? (
-                                  <>
-                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-red-700" fill="none" viewBox="0 0 24 24">
-                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    Canceling...
-                                  </>
-                                ) : (
-                                  <>
-                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                    Cancel Application
-                                  </>
-                                )}
-                              </button>
+                              <div className="flex space-x-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingApplication(application)}
+                                  className="inline-flex items-center px-3 py-2 border border-blue-300 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-50 transition-colors"
+                                >
+                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                  Edit Offer
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleCancelApplication(application.id)}
+                                  disabled={cancelingId === application.id}
+                                  className="inline-flex items-center px-3 py-2 border border-red-300 text-red-700 rounded-md text-sm font-medium hover:bg-red-50 transition-colors disabled:opacity-50"
+                                >
+                                  {cancelingId === application.id ? (
+                                    <>
+                                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-red-700" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                      </svg>
+                                      Canceling...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                      Cancel Application
+                                    </>
+                                  )}
+                                </button>
+                              </div>
                             )}
                           </div>
                         )}
@@ -647,7 +797,117 @@ export default function MyOffers() {
         )}
       </div>
     </div>
-    
+
+    {/* Edit Application Modal */}
+    {editingApplication && (
+      <EditApplicationModal
+        application={editingApplication}
+        onUpdate={handleUpdateApplication}
+        onClose={() => setEditingApplication(null)}
+      />
+    )}
+
     </Layout>
+  );
+}
+
+// Edit Application Modal Component
+function EditApplicationModal({
+  application,
+  onUpdate,
+  onClose
+}: {
+  application: Application;
+  onUpdate: (applicationId: string, price: number, estimatedTime: number) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [price, setPrice] = useState(application.price);
+  const [estimatedTime, setEstimatedTime] = useState(application.estimatedTime);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (price <= 0 || estimatedTime <= 0) {
+      alert('Please enter valid price and time values');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await onUpdate(application.id, price, estimatedTime);
+    } catch (error) {
+      console.error('Failed to update application:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Edit Your Offer</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+            aria-label="Close modal"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Your Price ($)
+            </label>
+            <input
+              type="number"
+              value={price}
+              onChange={(e) => setPrice(Number(e.target.value))}
+              min="1"
+              step="0.01"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Estimated Time (hours)
+            </label>
+            <input
+              type="number"
+              value={estimatedTime}
+              onChange={(e) => setEstimatedTime(Number(e.target.value))}
+              min="0.5"
+              step="0.5"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div className="flex space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Updating...' : 'Update Offer'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 }

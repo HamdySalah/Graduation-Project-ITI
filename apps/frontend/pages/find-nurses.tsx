@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../lib/auth';
 import { apiService } from '../lib/api';
+import { reviewApiService } from '../lib/reviewApi';
 import CommonLayout from '../components/CommonLayout';
 import ErrorDisplay from '../components/ErrorDisplay';
+import UserRatingDisplay from '../components/UserRatingDisplay';
+import { StarRating } from '../components/RatingComponent';
 import { CustomError } from '../lib/errors';
 import { errorHandler } from '../lib/errorHandler';
 
@@ -37,6 +40,7 @@ const FindNursesPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSpecialization, setFilterSpecialization] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
+  const [selectedNurse, setSelectedNurse] = useState<Nurse | null>(null);
 
   useEffect(() => {
     if (user?.role === 'patient') {
@@ -77,18 +81,7 @@ const FindNursesPage = () => {
     return matchesSearch && matchesSpecialization && matchesLocation;
   });
 
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <svg
-        key={i}
-        className={`w-4 h-4 ${i < rating ? 'text-yellow-400' : 'text-gray-300'}`}
-        fill="currentColor"
-        viewBox="0 0 20 20"
-      >
-        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-      </svg>
-    ));
-  };
+
 
   if (user?.role !== 'patient') {
     return (
@@ -191,6 +184,7 @@ const FindNursesPage = () => {
             </p>
             {(searchTerm || filterSpecialization || filterLocation) && (
               <button
+                type="button"
                 onClick={() => {
                   setSearchTerm('');
                   setFilterSpecialization('');
@@ -218,10 +212,8 @@ const FindNursesPage = () => {
                       <p className="text-gray-600">{nurse.profile?.bio || 'Professional nurse'}</p>
                       {nurse.rating && (
                         <div className="flex items-center mt-1">
-                          <div className="flex items-center mr-2">
-                            {renderStars(nurse.rating)}
-                          </div>
-                          <span className="text-sm text-gray-600">
+                          <StarRating rating={nurse.rating} readonly size="sm" />
+                          <span className="text-sm text-gray-600 ml-2">
                             ({nurse.rating}/5) • {nurse.completedJobs || 0} jobs completed
                           </span>
                         </div>
@@ -272,6 +264,16 @@ const FindNursesPage = () => {
                     Member since {new Date(nurse.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
                   </div>
                   <div className="flex space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedNurse(nurse)}
+                      className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      View Profile
+                    </button>
                     <a
                       href={`tel:${nurse.phone}`}
                       className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
@@ -301,6 +303,60 @@ const FindNursesPage = () => {
         {!loading && filteredNurses.length > 0 && (
           <div className="mt-6 text-center text-sm text-gray-600">
             Showing {filteredNurses.length} of {nurses.length} available nurses
+          </div>
+        )}
+
+        {/* Nurse Profile Modal */}
+        {selectedNurse && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-2/3 shadow-lg rounded-md bg-white">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-gray-900">
+                  {selectedNurse.name}'s Profile
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setSelectedNurse(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                  aria-label="Close modal"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="max-h-96 overflow-y-auto">
+                <UserRatingDisplay
+                  userId={selectedNurse._id}
+                  userName={selectedNurse.name}
+                  userRole="nurse"
+                  showReviews={true}
+                  showStats={true}
+                />
+              </div>
+
+              <div className="mt-6 flex justify-end space-x-3">
+                <a
+                  href={`tel:${selectedNurse.phone}`}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  Contact
+                </a>
+                <a
+                  href={`/create-request?nurse=${selectedNurse._id}`}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                  Request Service
+                </a>
+              </div>
+            </div>
           </div>
         )}
       </div>
