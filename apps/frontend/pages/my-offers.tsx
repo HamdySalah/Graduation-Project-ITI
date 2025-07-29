@@ -320,14 +320,28 @@ export default function MyOffers() {
   // Handler for nurse to cancel a pending application
   const handleCancelApplication = async (applicationId: string) => {
     try {
+      console.log('🗑️ Cancel application clicked for ID:', applicationId);
       setCancelingId(applicationId);
+
       if (confirm('Are you sure you want to cancel this application?')) {
-        await apiService.cancelApplication(applicationId);
+        console.log('✅ User confirmed cancellation');
+
+        const result = await apiService.cancelApplication(applicationId);
+        console.log('✅ Cancel API response:', result);
+
         alert('Application cancelled successfully');
         await loadData(); // Reload to get updated data
+        console.log('✅ Data reloaded after cancellation');
+      } else {
+        console.log('❌ User cancelled the cancellation');
       }
     } catch (err: any) {
-      console.error('Error cancelling application:', err);
+      console.error('❌ Error cancelling application:', err);
+      console.error('❌ Error details:', {
+        message: err.message,
+        stack: err.stack,
+        name: err.name
+      });
       alert(`Failed to cancel application: ${err.message}`);
     } finally {
       setCancelingId(null);
@@ -337,14 +351,33 @@ export default function MyOffers() {
   // Handler for nurse to edit a pending application
   const handleUpdateApplication = async (applicationId: string, price: number, estimatedTime: number) => {
     try {
-      console.log('🔄 Updating application:', { applicationId, price, estimatedTime });
+      console.log('🔄 Update application clicked for ID:', applicationId);
+      console.log('🔄 New values:', { price, estimatedTime });
 
-      await apiService.updateApplication(applicationId, { price, estimatedTime });
+      // Validate inputs
+      if (!price || price <= 0) {
+        alert('❌ Please enter a valid price greater than 0');
+        return;
+      }
+      if (!estimatedTime || estimatedTime <= 0) {
+        alert('❌ Please enter a valid estimated time greater than 0');
+        return;
+      }
+
+      const result = await apiService.updateApplication(applicationId, { price, estimatedTime });
+      console.log('✅ Update API response:', result);
+
       alert('✅ Offer updated successfully! The patient has been notified.');
       setEditingApplication(null);
       await loadData(); // Reload to get updated data
+      console.log('✅ Data reloaded after update');
     } catch (err: any) {
       console.error('❌ Failed to update application:', err);
+      console.error('❌ Error details:', {
+        message: err.message,
+        stack: err.stack,
+        name: err.name
+      });
       const errorMessage = err.message || 'Failed to update application';
       alert(`❌ Failed to update offer: ${errorMessage}`);
     }
@@ -737,27 +770,46 @@ export default function MyOffers() {
                         </div>
                         
                         {/* Status indicators */}
-                        {application.status === 'pending' && (
+                        {/* Debug: Log application status */}
+                        {console.log('🔍 Application status:', application.status, 'for application:', application.id)}
+                        {console.log('🔍 User role:', user.role)}
+                        {console.log('🔍 Should show buttons:', application.status === 'pending' && user.role === 'nurse')}
+
+                        {(application.status === 'pending' || application.status === 'accepted') && (
                           <div className="flex items-center space-x-3">
                             <div className="text-sm text-gray-500">
-                              Waiting for response...
+                              {application.status === 'pending' ? 'Waiting for response...' : 'Application accepted'}
                             </div>
                             {user.role === 'nurse' && (
                               <div className="flex space-x-2">
-                                <button
-                                  type="button"
-                                  onClick={() => setEditingApplication(application)}
-                                  className="inline-flex items-center px-3 py-2 border border-blue-300 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-50 transition-colors"
-                                >
-                                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                  </svg>
-                                  Edit Offer
-                                </button>
+                                {/* Debug indicator */}
+                                <div className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
+                                  Buttons Available
+                                </div>
+                                {application.status === 'pending' && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      console.log('✏️ Edit button clicked for application:', application.id);
+                                      console.log('✏️ Application data:', application);
+                                      setEditingApplication(application);
+                                    }}
+                                    className="inline-flex items-center px-3 py-2 border border-blue-300 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-50 transition-colors"
+                                  >
+                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    Edit Offer
+                                  </button>
+                                )}
 
                                 <button
                                   type="button"
-                                  onClick={() => handleCancelApplication(application.id)}
+                                  onClick={() => {
+                                    console.log('🗑️ Cancel button clicked for application:', application.id);
+                                    console.log('🗑️ Application data:', application);
+                                    handleCancelApplication(application.id);
+                                  }}
                                   disabled={cancelingId === application.id}
                                   className="inline-flex items-center px-3 py-2 border border-red-300 text-red-700 rounded-md text-sm font-medium hover:bg-red-50 transition-colors disabled:opacity-50"
                                 >
@@ -774,7 +826,7 @@ export default function MyOffers() {
                                       <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                       </svg>
-                                      Cancel Application
+                                      {application.status === 'pending' ? 'Cancel Application' : 'Withdraw from Job'}
                                     </>
                                   )}
                                 </button>
