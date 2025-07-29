@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import DocumentUpload from '../DocumentUpload';
 
 interface Step3CompleteProfileProps {
   onNext: (data: Step3Data) => void;
@@ -27,7 +28,13 @@ export interface Step3Data {
   graduationDate: string;
   
   // Documents
-  additionalDocuments?: File[];
+  additionalDocuments: Array<{
+    filename: string;
+    originalName: string;
+    url: string;
+    size: number;
+    documentType?: string;
+  }>;
 }
 
 const availableSkills = [
@@ -218,7 +225,21 @@ export default function Step3CompleteProfile({
     e.preventDefault();
     
     if (validateForm()) {
-      onNext(formData);
+      // Make sure additionalDocuments has the right structure
+      // Transform the documents if needed to match the Step3CompleteProfileDto format
+      const transformedData = {
+        ...formData,
+        additionalDocuments: formData.additionalDocuments.map(doc => ({
+          fileName: doc.filename,
+          originalName: doc.originalName,
+          fileUrl: doc.url,
+          fileSize: doc.size,
+          fileType: doc.originalName.split('.').pop() || 'unknown',
+          documentType: doc.documentType || 'certification',
+        }))
+      };
+      
+      onNext(transformedData);
     }
   };
 
@@ -582,20 +603,15 @@ export default function Step3CompleteProfile({
           {/* Documents Section */}
           <div className="mb-8">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Documents</h3>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              <svg className="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
-              <p className="text-blue-600 font-medium mb-1">Upload Documents</p>
-              <p className="text-gray-500 text-sm">Upload copies of your certifications and licenses for verification.</p>
-              <button
-                type="button"
-                className="mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm transition-colors"
-                disabled={loading}
-              >
-                Browse Files
-              </button>
-            </div>
+            <DocumentUpload
+              onDocumentsChange={(documents) => {
+                setFormData(prev => ({ ...prev, additionalDocuments: documents }));
+              }}
+              initialDocuments={formData.additionalDocuments}
+              disabled={loading}
+              maxDocuments={5}
+              maxSizePerDocument={10} // 10MB
+            />
           </div>
         </div>
 

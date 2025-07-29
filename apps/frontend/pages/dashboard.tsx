@@ -4,12 +4,13 @@ import { useNurseAccessStatus } from '../hooks/useNurseAccessStatus';
 import Layout, { Card, LoadingSpinner, StatusBadge } from '../components/Layout';
 import { apiService } from '../lib/api';
 import SessionStatus from '../components/SessionStatus';
-import ErrorBoundary from '../components/ErrorBoundary';
+// import ErrorBoundary from '../components/ErrorBoundary';
 import { navigationUtils } from '../lib/navigation';
 import PatientLayout from '../components/PatientLayout';
 import ErrorDisplay from '../components/ErrorDisplay';
 import { CustomError, ErrorCode } from '../lib/errors';
 import { errorHandler } from '../lib/errorHandler';
+
 
 interface DashboardStats {
   totalRequests?: number;
@@ -264,7 +265,7 @@ export default function Dashboard() {
   // Admin Dashboard with new UI
   if (user.role === 'admin') {
     return (
-      <ErrorBoundary>
+      <>
         <div className="min-h-screen bg-gray-50 flex">
           {/* Sidebar */}
           <div className="w-64 bg-white shadow-sm border-r border-gray-200">
@@ -572,14 +573,14 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-      </ErrorBoundary>
+      </>
     );
   }
 
   // Patient Dashboard with new UI
   if (user.role === 'patient') {
     return (
-      <ErrorBoundary>
+      <>
         <PatientLayout activeItem="dashboard" title="Dashboard">
           <div className="max-w-6xl">
             {/* Error Display */}
@@ -704,13 +705,13 @@ export default function Dashboard() {
                 </div>
           </div>
         </PatientLayout>
-      </ErrorBoundary>
+      </>
     );
   }
   // Regular User Dashboard (Patient/Nurse)
   if (user.role === 'patient') {
     return (
-      <ErrorBoundary>
+      <>
         <Layout title={`Welcome back, ${user.name}!`}>
           <div className="flex min-h-screen bg-gray-50">
             {/* Sidebar (نفس الروابط الأصلية فقط) */}
@@ -858,79 +859,14 @@ export default function Dashboard() {
             </main>
           </div>
         </Layout>
-      </ErrorBoundary>
+      </>
     );
   }
 
   // Regular User Dashboard (Patient/Nurse)
   return (
-    <ErrorBoundary>
-      <div className="min-h-screen bg-gray-50 flex">
-        {/* Sidebar */}
-        <div className="w-64 bg-white shadow-sm border-r border-gray-200">
-          <div className="p-6">
-            {/* User Profile Section */}
-            <div className="flex items-center space-x-3 mb-8">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-lg">
-                {user.name?.charAt(0) || 'N'}
-              </div>
-              <div>
-                <h2 className="font-semibold text-gray-900">CareConnect</h2>
-                <p className="text-sm text-gray-600">Nurse</p>
-              </div>
-            </div>
-
-            {/* Navigation Items */}
-            <nav className="space-y-1">
-              <a
-                href="/dashboard"
-                className="flex items-center space-x-3 px-3 py-3 text-sm font-medium bg-gray-100 text-gray-900 rounded-lg"
-              >
-                <span className="text-lg">🏠</span>
-                <span>Dashboard</span>
-              </a>
-              <a
-                href="/requests"
-                className="flex items-center space-x-3 px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-              >
-                <span className="text-lg">📋</span>
-                <span>Available Requests</span>
-              </a>
-              <a
-                href="/visit-history"
-                className="flex items-center space-x-3 px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-              >
-                <span className="text-lg">📅</span>
-                <span>Visit History</span>
-              </a>
-              <a
-                href="/settings"
-                className="flex items-center space-x-3 px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-              >
-                <span className="text-lg">⚙️</span>
-                <span>Settings</span>
-              </a>
-            </nav>
-
-            {/* Logout Button */}
-            <div className="mt-8 pt-8 border-t border-gray-200">
-              <button
-                onClick={() => {
-                  window.location.href = '/login';
-                }}
-                className="flex items-center space-x-3 px-3 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors w-full"
-              >
-                <span className="text-lg">🚪</span>
-                <span>Log out</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="flex-1 bg-white">
-          <div className="p-8">
-            <div className="max-w-6xl">
+    <PatientLayout activeItem="dashboard" title="Dashboard">
+      <div className="max-w-6xl">
               {/* Error Display */}
               {error && (
                 <ErrorDisplay
@@ -1080,9 +1016,6 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-    </ErrorBoundary>
+      </PatientLayout>
   );
 }

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../lib/auth';
-import Layout, { Card, LoadingSpinner, StatusBadge } from '../../components/Layout';
+import { Card, LoadingSpinner, StatusBadge } from '../../components/Layout';
+import PatientLayout from '../../components/PatientLayout';
 import { apiService } from '../../lib/api';
 import ImageGallery from '../../components/ImageGallery';
 
@@ -137,15 +138,15 @@ export default function RequestDetails() {
 
   if (loading) {
     return (
-      <Layout>
+      <PatientLayout>
         <LoadingSpinner />
-      </Layout>
+      </PatientLayout>
     );
   }
 
   if (error || !request || typeof request !== 'object') {
     return (
-      <Layout>
+      <PatientLayout>
         <div className="text-center py-8">
           <p className="text-red-600">{error || 'Request not found or invalid data'}</p>
           <button
@@ -156,12 +157,12 @@ export default function RequestDetails() {
             Go Back
           </button>
         </div>
-      </Layout>
+      </PatientLayout>
     );
   }
 
   return (
-    <Layout title="Request Details">
+    <PatientLayout title="Request Details">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
         <Card className="p-6">
@@ -356,6 +357,6 @@ export default function RequestDetails() {
           )}
         </div>
       </div>
-    </Layout>
+    </PatientLayout>
   );
 }

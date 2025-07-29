@@ -11,7 +11,7 @@ interface User {
   name: string;
   email: string;
   role: 'patient' | 'nurse' | 'admin';
-  status: 'active' | 'inactive' | 'pending' | 'verified';
+  status: 'active' | 'inactive' | 'pending' | 'verified' | 'rejected';
   phone?: string;
   createdAt: string;
   lastLogin?: string;
@@ -198,6 +198,8 @@ export default function UsersManagement() {
         return 'bg-yellow-100 text-yellow-800';
       case 'inactive':
         return 'bg-gray-100 text-gray-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -274,7 +276,47 @@ export default function UsersManagement() {
       setSuccessMessage('User activated successfully');
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error: any) {
-      setError(error.message || 'Failed to activate user');
+      // Provide a more user-friendly error message
+      const errorMessage = error.message?.includes('Validation failed') 
+        ? 'Could not activate user. Please try again.' 
+        : (error.message || 'Failed to activate user');
+      
+      setError(errorMessage);
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setProcessingId('');
+    }
+  };
+  
+  // Function to verify nurse
+  const handleVerifyNurse = async (userId: string) => {
+    try {
+      setProcessingId(userId);
+      
+      // Make actual API call to verify the nurse
+      const result = await apiService.verifyNurseStatus(userId);
+      
+      if (!result.success) {
+        // Handle API error gracefully
+        throw new Error(result.message || 'Verification failed');
+      }
+      
+      // Update user status locally
+      const updatedUsers = users.map(user => 
+        user._id === userId ? {...user, status: 'verified'} : user
+      );
+      
+      setUsers(updatedUsers);
+      setSuccessMessage('Nurse verified successfully');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error: any) {
+      // Provide a more user-friendly error message
+      const errorMessage = error.message?.includes('Validation failed') 
+        ? 'Could not verify nurse. Please try again.' 
+        : (error.message || 'Failed to verify nurse');
+      
+      setError(errorMessage);
+      setTimeout(() => setError(''), 3000);
     } finally {
       setProcessingId('');
     }
@@ -288,14 +330,20 @@ export default function UsersManagement() {
       
       // Update user status locally (would be replaced with actual API call)
       const updatedUsers = users.map(user => 
-        user._id === userId ? {...user, status: 'inactive'} : user
+        user._id === userId ? {...user, status: 'rejected'} : user
       );
       
       setUsers(updatedUsers);
       setSuccessMessage('User deactivated successfully');
       setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error: any) {
-      setError(error.message || 'Failed to deactivate user');
+      // Provide a more user-friendly error message
+      const errorMessage = error.message?.includes('Validation failed') 
+        ? 'Could not deactivate user. Please try again.' 
+        : (error.message || 'Failed to deactivate user');
+      
+      setError(errorMessage);
+      setTimeout(() => setError(''), 3000);
     } finally {
       setProcessingId('');
     }
@@ -390,7 +438,7 @@ export default function UsersManagement() {
                 >
                   <option value="all">All Statuses</option>
                   <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
+                  <option value="rejected">Rejected</option>
                   <option value="pending">Pending</option>
                   <option value="verified">Verified</option>
                 </select>
@@ -571,7 +619,8 @@ export default function UsersManagement() {
                             <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeColor(user.status)}`}>
                               {user.status === 'active' ? 'Active' : 
                                user.status === 'inactive' ? 'Inactive' : 
-                               user.status === 'pending' ? 'Pending' : 'Verified'}
+                               user.status === 'pending' ? 'Pending' : 
+                               user.status === 'rejected' ? 'Rejected' : 'Verified'}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -590,7 +639,18 @@ export default function UsersManagement() {
                                 </svg>
                               </button>
                               
-                              {user.status === 'inactive' ? (
+                              {user.status === 'rejected' && user.role === 'nurse' ? (
+                                <button
+                                  onClick={() => handleVerifyNurse(user._id)}
+                                  disabled={processingId === user._id}
+                                  className={`text-blue-600 hover:text-blue-900 transition-colors ${processingId === user._id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                  title="Verify Nurse"
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                </button>
+                              ) : user.status === 'rejected' ? (
                                 <button
                                   onClick={() => handleActivateUser(user._id)}
                                   disabled={processingId === user._id}
@@ -599,6 +659,17 @@ export default function UsersManagement() {
                                 >
                                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                </button>
+                              ) : user.role === 'nurse' && user.status === 'pending' ? (
+                                <button
+                                  onClick={() => handleVerifyNurse(user._id)}
+                                  disabled={processingId === user._id}
+                                  className={`text-blue-600 hover:text-blue-900 transition-colors ${processingId === user._id ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                  title="Verify Nurse"
+                                >
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                   </svg>
                                 </button>
                               ) : (
@@ -751,7 +822,8 @@ export default function UsersManagement() {
                     <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeColor(selectedUser.status)}`}>
                       {selectedUser.status === 'active' ? 'Active' : 
                        selectedUser.status === 'inactive' ? 'Inactive' : 
-                       selectedUser.status === 'pending' ? 'Pending' : 'Verified'}
+                       selectedUser.status === 'pending' ? 'Pending' : 
+                       selectedUser.status === 'rejected' ? 'Rejected' : 'Verified'}
                     </span>
                   </div>
                   
@@ -776,7 +848,17 @@ export default function UsersManagement() {
                 </div>
 
                 <div className="mt-6 flex space-x-3 rtl:space-x-reverse">
-                  {selectedUser.status === 'inactive' ? (
+                  {selectedUser.status === 'rejected' && selectedUser.role === 'nurse' ? (
+                    <button
+                      onClick={() => {
+                        handleVerifyNurse(selectedUser._id);
+                        setShowUserModal(false);
+                      }}
+                      className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Verify Nurse
+                    </button>
+                  ) : selectedUser.status === 'rejected' ? (
                     <button
                       onClick={() => {
                         handleActivateUser(selectedUser._id);
@@ -785,6 +867,16 @@ export default function UsersManagement() {
                       className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
                     >
                       Activate User
+                    </button>
+                  ) : selectedUser.role === 'nurse' && selectedUser.status === 'pending' ? (
+                    <button
+                      onClick={() => {
+                        handleVerifyNurse(selectedUser._id);
+                        setShowUserModal(false);
+                      }}
+                      className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Verify Nurse
                     </button>
                   ) : selectedUser.role !== 'admin' && (
                     <button

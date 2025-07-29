@@ -17,7 +17,7 @@ const HeroSection = () => {
           discover flexible opportunities and connect with patients seeking your expertise.
         </p>
         <div className="space-x-4 flex justify-center animate-fade-in delay-400">
-          <Link
+          {/* <Link
             href="/nurses"
             className="bg-blue-600 text-white py-3 px-6 rounded-lg shadow-lg hover:bg-blue-700 hover:shadow-xl transition duration-300 transform hover:-translate-y-1"
           >
@@ -28,7 +28,7 @@ const HeroSection = () => {
             className="bg-white text-blue-600 py-3 px-6 rounded-lg border-2 border-blue-600 shadow-md hover:bg-blue-50 hover:shadow-xl transition duration-300 transform hover:-translate-y-1"
           >
             Dashboard
-          </Link>
+          </Link> */}
         </div>
       </div>
     </section>

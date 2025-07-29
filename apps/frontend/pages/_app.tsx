@@ -16,6 +16,11 @@ const ChatWidget = dynamic(() => import('../components/ChatWidget'), {
   ssr: false 
 });
 
+// Import MainLayout with dynamic loading
+const MainLayout = dynamic(() => import('../components/MainLayout'), {
+  ssr: false
+});
+
 // Temporarily disabled due to package issues
 // const ChatWidget = dynamic(() => import('../components/ChatWidget'), {
 //   ssr: false
@@ -32,6 +37,8 @@ function MyApp({ Component, pageProps }: AppProps) {
   useEffect(() => {
     setMounted(true);
   }, []);
+  
+  // No need to track PatientLayout flag anymore as we use a static list of known pages
   
   // Global error handling
   useEffect(() => {
@@ -59,19 +66,47 @@ function MyApp({ Component, pageProps }: AppProps) {
   }, []);
 
   // Prevent hydration errors by waiting for client side rendering
+  const isHomePage = router.pathname === '/';
+  
+  // Check if the current page is known to use PatientLayout
+  // This is more reliable than using a global flag
+  const knownPatientLayoutPages = [
+    '/dashboard',
+    '/requests',
+    '/requests/create',
+    '/requests/[id]',
+    '/notifications',
+    '/settings',
+    '/profile',
+    '/patient-completed-requests',
+    '/messages',
+    '/payments',
+    '/help',
+    '/nurses'
+  ];
+  
+  const usesPatientLayout = knownPatientLayoutPages.includes(router.pathname);
+  
+  // Only show MainLayout if not auth page, not admin page, not homepage, and not already using PatientLayout
+  const shouldShowMainLayout = !isAuthPage && !isAdminPage && !isHomePage && mounted && !usesPatientLayout;
+  
+  // Never show sidebar in MainLayout - let each page handle its own sidebar
   const content = mounted ? (
     <div className="flex flex-col min-h-screen">
       {/* Navbar appears on all pages except login, register, and admin pages */}
       {!isAuthPage && !isAdminPage && <Navbar />}
-      <main className={`flex-grow ${!isAuthPage && !isAdminPage ? 'pt-0' : ''}`}>
-        <Component {...pageProps} />
-      </main>
-      {/* AI Chat Widget - appears on all pages */
       
-      }
-      {/* Temporarily disabled due to package issues */}
+      {shouldShowMainLayout ? (
+        <MainLayout skipSidebar={false}>
+          <Component {...pageProps} />
+        </MainLayout>
+      ) : (
+        <main className={`flex-grow ${!isAuthPage && !isAdminPage ? 'pt-0' : ''}`}>
+          <Component {...pageProps} />
+        </main>
+      )}
       
-      {/* <ChatWidget /> */}
+      {/* AI Chat Widget - appears on all pages */}
       <ChatWidget />
     </div>
   ) : (

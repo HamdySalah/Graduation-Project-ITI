@@ -4,13 +4,14 @@ import PatientSidebar from './PatientSidebar';
 import NurseSidebar from './NurseSidebar';
 import NotificationBell from './NotificationBell';
 
-interface PatientLayoutProps {
+interface CommonLayoutProps {
   children: ReactNode;
   activeItem?: string;
   title?: string;
+  allowedRoles?: string[];
 }
 
-export default function PatientLayout({ children, activeItem, title }: PatientLayoutProps) {
+export default function CommonLayout({ children, activeItem, title, allowedRoles = ['patient', 'nurse'] }: CommonLayoutProps) {
   const { user, loading } = useAuth();
 
   // Loading state
@@ -22,8 +23,8 @@ export default function PatientLayout({ children, activeItem, title }: PatientLa
     );
   }
 
-  // Redirect if not authenticated or not a patient or nurse
-  if (!user || (user.role !== 'patient' && user.role !== 'nurse')) {
+  // Redirect if not authenticated or not in allowed roles
+  if (!user || !allowedRoles.includes(user.role)) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-4">
         <div className="bg-white shadow-lg rounded-lg p-8 max-w-md w-full text-center">
@@ -33,7 +34,9 @@ export default function PatientLayout({ children, activeItem, title }: PatientLa
             </svg>
           </div>
           <h1 className="text-xl font-bold text-gray-800 mb-2">Access Denied</h1>
-          <p className="text-gray-600 mb-6">You need to be logged in as a patient or nurse to access this page.</p>
+          <p className="text-gray-600 mb-6">
+            You need to be logged in as {allowedRoles.join(' or ')} to access this page.
+          </p>
           <a
             href="/login"
             className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg px-5 py-2.5 transition duration-200"
@@ -47,40 +50,32 @@ export default function PatientLayout({ children, activeItem, title }: PatientLa
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar - display the appropriate sidebar based on user role */}
-      {user.role === 'patient' ? (
-        <PatientSidebar activeItem={activeItem} />
-      ) : (
-        <NurseSidebar activeItem={activeItem} />
-      )}
-      
+      {/* Sidebar - different for each role */}
+      {user.role === 'patient' && <PatientSidebar activeItem={activeItem} />}
+      {user.role === 'nurse' && <NurseSidebar activeItem={activeItem} />}
+
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {/* Header with title and notifications */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              {title && (
-                <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-              )}
-            </div>
-            <div className="flex items-center space-x-4">
-              <NotificationBell />
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">
-                    {user?.name?.charAt(0).toUpperCase() || 'U'}
-                  </span>
+        {/* Top Bar */}
+        <header className="bg-white shadow-sm p-4 flex justify-between items-center">
+          <h1 className="text-xl font-semibold text-gray-800">{title || 'Dashboard'}</h1>
+          <div className="flex items-center space-x-4">
+            <NotificationBell />
+            <div className="relative">
+              <button className="flex items-center space-x-2 focus:outline-none">
+                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                  {user.name?.charAt(0)?.toUpperCase()}
                 </div>
-                <div className="hidden sm:block">
-                  <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-                  <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
-                </div>
-              </div>
+                <span className="hidden md:inline-block text-sm font-medium text-gray-700">
+                  {user.name}
+                </span>
+              </button>
             </div>
           </div>
-        </div>
-        <main className="flex-1 p-6">
+        </header>
+
+        {/* Main Content Area */}
+        <main className="flex-1 p-6 overflow-y-auto">
           {children}
         </main>
       </div>
