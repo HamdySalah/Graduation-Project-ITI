@@ -347,11 +347,22 @@ export class RequestsService {
       }
       request.completedAt = new Date();
     } else if (status === RequestStatus.CANCELLED) {
-      if (user.role !== UserRole.PATIENT || !this.compareObjectIds((request.patientId as any)?._id || request.patientId, user._id)) {
-        throw new ForbiddenException('Only the patient can cancel their requests');
+      // Allow both patient owner or any admin to cancel the request
+      if (user.role === UserRole.ADMIN) {
+        // Admin can cancel any request that is pending or in progress
+        if (request.status !== RequestStatus.PENDING && request.status !== RequestStatus.IN_PROGRESS) {
+          throw new BadRequestException('Admin can only cancel pending or in-progress requests');
+        }
+      } else if (user.role === UserRole.PATIENT) {
+        // Patient can only cancel their own requests
+        if (!this.compareObjectIds((request.patientId as any)?._id || request.patientId, user._id)) {
+          throw new ForbiddenException('You can only cancel your own requests');
+        }
+      } else {
+        throw new ForbiddenException('Only the patient or an admin can cancel requests');
       }
       request.cancelledAt = new Date();
-      request.cancellationReason = cancellationReason;
+      request.cancellationReason = cancellationReason || 'Cancelled by admin';
     } else if (status === RequestStatus.IN_PROGRESS) {
       if (user.role !== UserRole.NURSE || !this.compareObjectIds((request.nurseId as any)?._id || request.nurseId, user._id)) {
         throw new ForbiddenException('Only the assigned nurse can start requests');

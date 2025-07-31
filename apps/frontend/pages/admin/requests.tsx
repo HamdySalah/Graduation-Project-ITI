@@ -73,7 +73,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 // Admin Request Card Component
-function AdminRequestCard({ request }: { request: AdminRequest }) {
+function AdminRequestCard({ request, onCancelRequest }: { request: AdminRequest, onCancelRequest?: (requestId: string) => void }) {
   const [expanded, setExpanded] = useState(false);
 
   const getUrgencyColor = (level: string) => {
@@ -254,6 +254,20 @@ function AdminRequestCard({ request }: { request: AdminRequest }) {
                 Nurse
               </Link>
             )}
+            
+            {/* Cancel button - Only show for pending or in_progress requests */}
+            {(request.status === 'pending' || request.status === 'in_progress') && onCancelRequest && (
+              <button
+                onClick={() => onCancelRequest(request.id)}
+                className="text-red-600 hover:text-red-800 text-sm font-medium flex items-center"
+                title="Cancel this request"
+              >
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Cancel Request
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -271,6 +285,7 @@ export default function Requests() {
   const [sortOption, setSortOption] = useState('newest');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
   
   // Fetch requests from API
   useEffect(() => {
@@ -399,6 +414,53 @@ export default function Requests() {
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSortOption(e.target.value);
     setPage(1); // Reset to first page on new sort
+  };
+  
+  // Handle request cancellation by admin
+  const handleCancelRequest = async (requestId: string) => {
+    if (!requestId || processingRequestId) return;
+    
+    // Get the request details
+    const request = requests.find(r => r.id === requestId);
+    if (!request) return;
+    
+    // Can only cancel pending or in-progress requests
+    if (request.status !== 'pending' && request.status !== 'in_progress') {
+      alert('Only pending or in-progress requests can be cancelled.');
+      return;
+    }
+    
+    // Confirm cancellation
+    const reason = prompt('Please provide a reason for cancellation:');
+    if (reason === null) return; // User clicked cancel
+    
+    if (!reason.trim()) {
+      alert('Please provide a cancellation reason.');
+      return;
+    }
+    
+    try {
+      setProcessingRequestId(requestId);
+      
+      // Call API to cancel the request
+      await apiService.updateRequestStatus(requestId, 'cancelled', reason);
+      
+      // Show success message
+      alert(`Request cancelled successfully. Patient and nurse (if assigned) will be notified.`);
+      
+      // Update local state
+      setRequests(prevRequests => 
+        prevRequests.map(r => 
+          r.id === requestId ? { ...r, status: 'cancelled' } : r
+        )
+      );
+      
+    } catch (err: any) {
+      console.error('Error cancelling request:', err);
+      alert(`Failed to cancel request: ${err.message || 'Unknown error'}`);
+    } finally {
+      setProcessingRequestId(null);
+    }
   };
 
   return (
@@ -570,7 +632,10 @@ export default function Requests() {
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ delay: index * 0.05 }}
                   >
-                    <AdminRequestCard request={request} />
+                    <AdminRequestCard 
+                      request={request} 
+                      onCancelRequest={handleCancelRequest} 
+                    />
                   </motion.div>
                 ))}
               </AnimatePresence>

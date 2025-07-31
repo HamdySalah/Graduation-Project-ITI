@@ -3,10 +3,9 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../../lib/auth';
 import { LoadingSpinner } from '../../components/Layout';
 import { apiService } from '../../lib/api';
-import CommonLayout from '../../components/CommonLayout';
-import RatingComponent from '../../components/RatingComponent';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import PatientLayout from '../../components/PatientLayout';
 
 interface Request {
   id: string;
@@ -71,10 +70,31 @@ function RequestsList() {
   const [dateFilter, setDateFilter] = useState('');
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [editingApplication, setEditingApplication] = useState<Application | null>(null);
-  const [selectedRequestForRating, setSelectedRequestForRating] = useState<Request | null>(null);
 
   useEffect(() => {
     if (user) {
+      // Clean up localStorage applications for new nurse users
+      if (user.role === 'nurse') {
+        try {
+          const storedApps = localStorage.getItem('nurse_applications');
+          if (storedApps) {
+            const localApps = JSON.parse(storedApps);
+            // Filter applications to only keep current nurse's applications
+            const currentNurseId = user.id;
+            const filteredApps = localApps.filter(app => app.nurseId === currentNurseId);
+            
+            if (filteredApps.length !== localApps.length) {
+              console.log('Initial cleanup: Removing applications from other nurses in localStorage');
+              localStorage.setItem('nurse_applications', JSON.stringify(filteredApps));
+            }
+          }
+        } catch (e) {
+          console.error('Failed to clean localStorage applications on user change:', e);
+          // Clear potentially corrupted data
+          localStorage.removeItem('nurse_applications');
+        }
+      }
+      
       loadData();
     } else {
       console.log('No user available yet, waiting for auth to complete');
@@ -107,13 +127,21 @@ function RequestsList() {
           setError('Could not load your requests. Please try again.');
         }
       } else if (user?.role === 'nurse') {
+        // Check if nurse is verified before fetching requests
+        if (user.status !== 'verified') {
+          console.log('Nurse not verified, skipping request fetching');
+          setAvailableRequests([]);
+          setLoading(false);
+          return;
+        }
+        
         try {
           // Load available requests (for nurses to apply to)
           console.log('Fetching nurse requests...');
           const requestsData = await apiService.getRequests();
           console.log('Received nurse requests:', requestsData);
           const available = Array.isArray(requestsData)
-            ? requestsData.filter(req => req.status === 'pending')
+            ? requestsData.filter(req => req.status === 'pending' || req.status === 'open')
             : [];
           setAvailableRequests(available);
 
@@ -129,10 +157,24 @@ function RequestsList() {
               const storedApps = localStorage.getItem('nurse_applications');
               if (storedApps) {
                 localApps = JSON.parse(storedApps);
-                console.log('Loaded locally stored applications:', localApps);
+                
+                // Filter out applications that don't belong to the current nurse
+                const currentNurseId = user?.id;
+                const filteredApps = localApps.filter(app => app.nurseId === currentNurseId);
+                
+                // If there are applications from other nurses, clean up localStorage
+                if (filteredApps.length !== localApps.length) {
+                  console.log('Removing applications from other nurses in localStorage');
+                  localStorage.setItem('nurse_applications', JSON.stringify(filteredApps));
+                  localApps = filteredApps;
+                }
+                
+                console.log('Loaded locally stored applications for current nurse:', localApps);
               }
             } catch (e) {
               console.error('Failed to load local applications:', e);
+              // Clear potentially corrupted data
+              localStorage.removeItem('nurse_applications');
             }
             
             // Merge applications from API and local storage, preferring API data
@@ -161,13 +203,27 @@ function RequestsList() {
             try {
               const storedApps = localStorage.getItem('nurse_applications');
               if (storedApps) {
-                const localApps = JSON.parse(storedApps);
-                console.log('Using locally stored applications after API failure:', localApps);
+                let localApps = JSON.parse(storedApps);
+                
+                // Filter out applications that don't belong to the current nurse
+                const currentNurseId = user?.id;
+                const filteredApps = localApps.filter(app => app.nurseId === currentNurseId);
+                
+                // If there are applications from other nurses, clean up localStorage
+                if (filteredApps.length !== localApps.length) {
+                  console.log('Removing applications from other nurses in localStorage after API failure');
+                  localStorage.setItem('nurse_applications', JSON.stringify(filteredApps));
+                  localApps = filteredApps;
+                }
+                
+                console.log('Using locally stored applications for current nurse after API failure:', localApps);
                 setMyApplications(localApps);
                 return;
               }
             } catch (e) {
               console.error('Failed to load local applications after API failure:', e);
+              // Clear potentially corrupted data
+              localStorage.removeItem('nurse_applications');
             }
             
             // If all else fails, set empty array
@@ -189,6 +245,12 @@ function RequestsList() {
 
   const handleApplyToRequest = async (requestId: string, price: number, estimatedTime: number, tempApp?: any) => {
     try {
+      // First check if nurse is verified
+      if (user?.role === 'nurse' && user?.status !== 'verified') {
+        alert('You must complete your profile and be verified by an administrator before you can apply to requests.');
+        return;
+      }
+      
       // Check if user has already applied to this request
       const existingApplication = myApplications.find(app => 
         app.requestId === requestId || 
@@ -320,96 +382,155 @@ function RequestsList() {
 
   const handleCancelApplication = async (applicationId: string) => {
     try {
-      console.log('🗑️ Cancel application requested for ID:', applicationId);
-
-      if (!applicationId) {
-        throw new Error('Application ID is required');
+      // First check if nurse is verified
+      if (user?.role === 'nurse' && user?.status !== 'verified') {
+        alert('You must be verified by an administrator to manage applications.');
+        return;
       }
-
-      if (confirm('Are you sure you want to cancel this application? The patient will be notified.')) {
-        console.log('✅ User confirmed cancellation for application:', applicationId);
-
-        // Make API call first to ensure it's valid
+      
+      // Confirm cancellation first
+      const confirmed = confirm('Are you sure you want to cancel this offer?\n\nYou will be able to submit a new offer for this request after cancellation.');
+      if (!confirmed) return;
+      
+      console.log('🗑️ Cancelling application with ID:', applicationId);
+      
+      // Find the request ID this application was for
+      const appToCancel = myApplications.find(app => app.id === applicationId);
+      const requestId = appToCancel?.requestId || '';
+      
+      if (!requestId) {
+        console.warn('⚠️ Could not find requestId for application:', applicationId);
+      } else {
+        console.log('� Application was for request:', requestId);
+      }
+      
+      // Update UI immediately for better user experience
+      const updatedApplications = myApplications.filter(app => app.id !== applicationId);
+      setMyApplications(updatedApplications);
+      localStorage.setItem('nurse_applications', JSON.stringify(updatedApplications));
+      
+      // Show immediate success message with more emphasis on ability to reapply
+      alert('Offer cancelled successfully!\n\nYou can now submit a new offer for this request.');
+      
+      // Try to call the API in the background (but don't block the UI)
+      try {
         await apiService.cancelApplication(applicationId);
-        console.log('✅ Application cancelled successfully on server');
-
-        // Update UI after successful API call
-        const updatedApplications = myApplications.filter(app => app.id !== applicationId);
-        setMyApplications(updatedApplications);
-
-        // Update localStorage to maintain consistent state
+        console.log('Server notified of cancellation');
+        
+        // After successful cancellation, remove this application ID from localStorage too
+        // This ensures the nurse can apply again immediately
         try {
-          localStorage.setItem('nurse_applications', JSON.stringify(updatedApplications));
-          console.log('✅ Updated localStorage after cancellation');
+          const storedApps = localStorage.getItem('nurse_applications');
+          if (storedApps) {
+            let localApps = JSON.parse(storedApps);
+            localApps = localApps.filter(app => app.id !== applicationId);
+            localStorage.setItem('nurse_applications', JSON.stringify(localApps));
+          }
         } catch (storageErr) {
-          console.error('⚠️ Failed to update localStorage:', storageErr);
+          console.warn('Error updating localStorage after cancellation:', storageErr);
         }
-
-        // Show success message
-        alert('✅ Application cancelled successfully! You can apply again if needed.');
-
-        // Reload data to ensure consistency
+      } catch (apiError) {
+        console.warn('API call failed but UI already updated:', apiError);
+        // Don't show error to user since the UI change was successful
+      }
+      
+      // Refresh data after a delay to ensure consistency
+      setTimeout(() => {
         loadData(false);
-      } else {
-        console.log('❌ User cancelled the cancellation');
-      }
+      }, 2000);
+      
     } catch (err: any) {
-      console.error('❌ Error cancelling application:', err);
-      const errorMessage = err.message || 'Failed to cancel application';
-      setError(errorMessage);
-
-      // Handle specific error cases
-      if (errorMessage.includes('cannot be cancelled') || errorMessage.includes('cannot be canceled')) {
-        alert('❌ This application cannot be cancelled because it has already been processed.');
-      } else if (errorMessage.includes('permission') || errorMessage.includes('not found')) {
-        alert(`❌ ${errorMessage}`);
-      } else {
-        alert(`❌ Failed to cancel application: ${errorMessage}`);
-      }
-
-      // Reload data to ensure UI is in sync with server
-      loadData(false);
+      console.error('❌ Error in cancel process:', err);
+      // Only show error if the UI update failed
+      alert('Failed to cancel offer. Please try refreshing the page.');
     }
   };
 
   const handleUpdateApplication = async (applicationId: string, price: number, estimatedTime: number) => {
     try {
-      console.log('🔄 Updating application:', { applicationId, price, estimatedTime });
-
-      // Validate inputs
-      if (!applicationId) {
-        throw new Error('Application ID is required');
+      // First check if nurse is verified
+      if (user?.role === 'nurse' && user?.status !== 'verified') {
+        alert('You must be verified by an administrator to manage applications.');
+        return;
       }
-      if (!price || price <= 0) {
-        throw new Error('Price must be greater than 0');
+      
+      console.log(`🔄 Updating application ${applicationId} with price: $${price}, time: ${estimatedTime}h`);
+      
+      // Validate input values first
+      if (price <= 0) {
+        alert('❌ Please enter a valid price greater than $0');
+        return;
       }
-      if (!estimatedTime || estimatedTime <= 0) {
-        throw new Error('Estimated time must be greater than 0');
+      if (estimatedTime <= 0) {
+        alert('❌ Please enter a valid time greater than 0 hours');
+        return;
       }
-
-      const result = await apiService.updateApplication(applicationId, { price, estimatedTime });
-      console.log('✅ Application updated successfully:', result);
-
-      alert('✅ Offer updated successfully! The patient has been notified.');
+      
+      // Update local state immediately for better UX
+      const updatedApplications = myApplications.map(app => {
+        if (app.id === applicationId) {
+          return { ...app, price, estimatedTime };
+        }
+        return app;
+      });
+      setMyApplications(updatedApplications);
+      localStorage.setItem('nurse_applications', JSON.stringify(updatedApplications));
+      // 
+      // Close the edit modal
       setEditingApplication(null);
-      loadData(); // Reload to get updated data
+      
+      // Show immediate success message
+      alert('✅ Offer updated successfully!\n\n📨 The patient will be notified of your new offer.');
+      
+      // Try to sync with server in background
+      try {
+        await apiService.updateApplication(applicationId, { price, estimatedTime });
+        console.log('✅ Server updated successfully');
+      } catch (apiError) {
+        console.warn('⚠️ API update failed but UI already updated:', apiError);
+        // Don't show error to user since UI update worked
+      }
+      
+      // Refresh data after delay to ensure consistency
+      setTimeout(() => {
+        loadData(false);
+      }, 2000);
+      
     } catch (err: any) {
-      console.error('❌ Failed to update application:', err);
-      const errorMessage = err.message || 'Failed to update application';
-      setError(errorMessage);
-      alert(`❌ Failed to update offer: ${errorMessage}`);
+      console.error('❌ Error updating application:', err);
+      alert('❌ Failed to update offer. Please try again.');
     }
   };
 
   const handleCancelRequest = async (requestId: string) => {
+    // Get the request to determine its current status
+    const currentRequest = myRequests.find(req => req.id === requestId);
+    const isInProgress = currentRequest?.status === 'in_progress';
+    
+    // Custom message for in-progress requests
+    let confirmMessage = isInProgress 
+      ? 'Are you sure you want to cancel this request that is currently in progress? This will terminate the nursing service agreement.'
+      : 'Are you sure you want to cancel this request?';
+      
+    // Ask for confirmation first
+    if (!confirm(confirmMessage)) return;
+    
+    // Then ask for reason
     const reason = prompt('Please provide a cancellation reason:');
     if (!reason) return;
 
     try {
       setCancelling(requestId);
       await apiService.updateRequestStatus(requestId, 'cancelled', reason);
+      
+      // Special message for in-progress cancellations
+      if (isInProgress) {
+        alert('In-progress request cancelled successfully. The nurse has been notified.');
+      } else {
+        alert('Request cancelled successfully');
+      }
+      
       await loadData(); // Reload to get updated data
-      alert('Request cancelled successfully');
     } catch (err: any) {
       setError(err.message || 'Failed to cancel request');
     } finally {
@@ -424,65 +545,31 @@ function RequestsList() {
 
   const handleCompleteByNurse = async (requestId: string) => {
     try {
-      console.log('🏥 Nurse completing request:', requestId);
-
       if (confirm('Are you sure you want to mark this request as completed? This action cannot be undone.')) {
-        console.log('✅ User confirmed completion');
-
-        // Mark as completed via API
-        const result = await apiService.markRequestCompletedByNurse(requestId);
-        console.log('✅ API response:', result);
-
+        await apiService.markRequestCompletedByNurse(requestId);
         alert('Request marked as completed by nurse. Waiting for patient confirmation.');
 
-        // Reload data to ensure UI is updated
-        await loadData(false);
-        console.log('✅ Data reloaded');
-
         // Redirect to completed requests page
-        console.log('🔄 Redirecting to completed requests...');
-        await router.push('/completed-requests');
-        console.log('✅ Redirect completed');
-      } else {
-        console.log('❌ User cancelled completion');
+        router.push('/completed-requests');
       }
     } catch (err: any) {
-      console.error('❌ Complete request error:', err);
-      const errorMessage = err.message || 'Failed to complete request';
-      setError(errorMessage);
-      alert(`❌ Failed to complete request: ${errorMessage}`);
+      console.error('Complete request error:', err);
+      setError(err.message || 'Failed to complete request');
     }
   };
 
   const handleCompleteByPatient = async (requestId: string) => {
     try {
-      console.log('🏥 Patient completing request:', requestId);
-
       if (confirm('Are you sure you want to mark this request as completed? This action cannot be undone.')) {
-        console.log('✅ User confirmed completion');
-
-        // Mark as completed via API
-        const result = await apiService.markRequestCompletedByPatient(requestId);
-        console.log('✅ API response:', result);
-
+        await apiService.markRequestCompletedByPatient(requestId);
         alert('Request marked as completed by patient. Thank you for using our service!');
 
-        // Reload data to ensure UI is updated
-        await loadData(false);
-        console.log('✅ Data reloaded');
-
         // Redirect to patient completed requests page
-        console.log('🔄 Redirecting to patient completed requests...');
-        await router.push('/patient-completed-requests');
-        console.log('✅ Redirect completed');
-      } else {
-        console.log('❌ User cancelled completion');
+        router.push('/patient-completed-requests');
       }
     } catch (err: any) {
-      console.error('❌ Complete request error:', err);
-      const errorMessage = err.message || 'Failed to complete request';
-      setError(errorMessage);
-      alert(`❌ Failed to complete request: ${errorMessage}`);
+      console.error('Complete request error:', err);
+      setError(err.message || 'Failed to complete request');
     }
   };
 
@@ -519,22 +606,49 @@ function RequestsList() {
       </div>
     );
   }
+  
+  // Check if nurse is pending verification
+  if (user?.role === 'nurse' && user?.status === 'pending') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">You must complete profile and be verified by an administrator before accessing patient requests.</p>
+          <p className="text-gray-500 mb-4">Your account is currently pending verification.</p>
+          <a href="/dashboard" className="text-blue-600 hover:text-blue-800">Back to Dashboard</a>
+        </div>
+      </div>
+    );
+  }
+  
+  // Check if nurse is rejected
+  if (user?.role === 'nurse' && user?.status === 'rejected') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Your account verification has been rejected.</p>
+          <p className="text-gray-500 mb-4">Please contact administrator for more information.</p>
+          <a href="/dashboard" className="text-blue-600 hover:text-blue-800">Back to Dashboard</a>
+        </div>
+      </div>
+    );
+  }
+  
+  // Check if nurse is suspended
+  if (user?.role === 'nurse' && user?.status === 'suspended') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Your account has been suspended.</p>
+          <p className="text-gray-500 mb-4">Please contact administrator for more information.</p>
+          <a href="/dashboard" className="text-blue-600 hover:text-blue-800">Back to Dashboard</a>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <CommonLayout activeItem="requests" allowedRoles={['patient', 'nurse']}>
-      <div className="p-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">
-            {user?.role === 'patient' ? 'My Requests' : 'Available Requests'}
-          </h1>
-          <p className="text-gray-600 mt-2">
-            {user?.role === 'patient'
-              ? 'Manage your nursing service requests'
-              : 'Browse and apply to available nursing requests'
-            }
-          </p>
-        </div>
-        <div className="max-w-6xl">
+    <PatientLayout activeItem="requests" title={user?.role === 'patient' ? 'My Requests' : 'Requests'}>
+      <div className="max-w-6xl">
         {/* Header Description */}
         <div className="mb-8">
           <p className="text-gray-600">
@@ -664,6 +778,9 @@ function RequestsList() {
                             getPatientImage={getPatientImage}
                             myApplications={myApplications}
                             setEditingApplication={setEditingApplication}
+                            onCompleteByNurse={handleCompleteByNurse}
+                            onUpdateApplication={handleUpdateApplication}
+                            user={user}
                           />
                         ))
                       ) : (
@@ -699,46 +816,17 @@ function RequestsList() {
                 )} */}
               </div>
             )}
-        </div>
-
-        {/* Rating Modal */}
-        {selectedRequestForRating && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-gray-900">
-                  Reviews for: {selectedRequestForRating.title}
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setSelectedRequestForRating(null)}
-                  className="text-gray-400 hover:text-gray-600"
-                  aria-label="Close modal"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              <div className="max-h-96 overflow-y-auto">
-                <RatingComponent
-                  requestId={selectedRequestForRating.id}
-                  requestTitle={selectedRequestForRating.title}
-                  otherPartyId={selectedRequestForRating.nurse?.id}
-                  otherPartyName={selectedRequestForRating.nurse?.name}
-                  otherPartyRole="nurse"
-                  onReviewSubmitted={() => {
-                    // Optionally refresh the request data or show success message
-                    console.log('Review submitted successfully');
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
       </div>
-    </CommonLayout>
+
+      {/* Edit Application Modal */}
+      {editingApplication && (
+        <EditApplicationModal
+          application={editingApplication}
+          onUpdate={handleUpdateApplication}
+          onClose={() => setEditingApplication(null)}
+        />
+      )}
+    </PatientLayout>
   );
 }
 
@@ -750,7 +838,10 @@ function RequestCard({
   formatDate,
   getPatientImage,
   myApplications,
-  setEditingApplication
+  setEditingApplication: parentSetEditingApplication,
+  onCompleteByNurse,
+  onUpdateApplication,
+  user
 }: {
   request: Request;
   onApply: (requestId: string, price: number, estimatedTime: number, tempApp?: any) => Promise<void>;
@@ -759,6 +850,9 @@ function RequestCard({
   getPatientImage: (patient?: Request['patient']) => string;
   myApplications: Application[];
   setEditingApplication: (app: Application | null) => void;
+  onCompleteByNurse: (requestId: string) => Promise<void>;
+  onUpdateApplication?: (applicationId: string, price: number, estimatedTime: number) => Promise<void>;
+  user: any; // إضافة المستخدم إلى props
 }) {
   const [isApplying, setIsApplying] = useState(false);
   const [price, setPrice] = useState(request.budget || 100);
@@ -769,11 +863,15 @@ function RequestCard({
   // Enhanced check that works both with in-memory state and API state
   // Force reevaluation of hasApplied and currentApplication on every render
   const hasApplied = useMemo(() => {
-    // Check if any application exists for this request ID in our applications list
+    // Get current nurse ID for validation
+    const currentNurseId = user?.id;
+    
+    // Check if any application exists for this request ID AND the current nurse ID in our applications list
     const result = myApplications.some(app => 
-      app.requestId === request.id || 
+      (app.requestId === request.id || 
       app.requestId === String(request.id) ||
-      (app.request && app.request.id === request.id)
+      (app.request && app.request.id === request.id)) && 
+      (app.nurseId === currentNurseId) // Make sure it's for the current nurse
     );
     
     // Always check localStorage as well in case the state wasn't loaded yet
@@ -782,11 +880,12 @@ function RequestCard({
       if (storedApps) {
         const localApps = JSON.parse(storedApps);
         if (localApps.some(app => 
-          app.requestId === request.id || 
+          (app.requestId === request.id || 
           app.requestId === String(request.id) ||
-          (app.request && app.request.id === request.id)
+          (app.request && app.request.id === request.id)) &&
+          (app.nurseId === currentNurseId) // Make sure it's for the current nurse
         )) {
-          return true; // Found in localStorage
+          return true; // Found in localStorage for the current nurse
         }
       }
     } catch (e) {
@@ -799,15 +898,19 @@ function RequestCard({
     }
     
     return result;
-  }, [myApplications, request.id]);
+  }, [myApplications, request.id, user?.id]);
   
   // Improved lookup with fallbacks and localStorage check
   const currentApplication = useMemo(() => {
+    // Get current nurse ID for validation
+    const currentNurseId = user?.id;
+    
     // First try to find in the current applications state
     const appFromState = myApplications.find(app => 
-      app.requestId === request.id || 
-      app.requestId === String(request.id) ||
-      (app.request && app.request.id === request.id)
+      (app.requestId === request.id || 
+       app.requestId === String(request.id) ||
+       (app.request && app.request.id === request.id)) &&
+      (app.nurseId === currentNurseId) // Make sure it's for the current nurse
     );
     
     if (appFromState) {
@@ -821,9 +924,10 @@ function RequestCard({
       if (storedApps) {
         const localApps = JSON.parse(storedApps);
         const appFromStorage = localApps.find(app => 
-          app.requestId === request.id || 
-          app.requestId === String(request.id) ||
-          (app.request && app.request.id === request.id)
+          (app.requestId === request.id || 
+           app.requestId === String(request.id) ||
+           (app.request && app.request.id === request.id)) &&
+          (app.nurseId === currentNurseId) // Make sure it's for the current nurse
         );
         
         if (appFromStorage) {
@@ -837,7 +941,7 @@ function RequestCard({
     
     // Not found anywhere
     return undefined;
-  }, [myApplications, request.id]);
+  }, [myApplications, request.id, user?.id]);
 
   const handleApplyClick = () => {
     setIsApplying(true);
@@ -980,25 +1084,16 @@ function RequestCard({
                       </div>
                     </div>
 
-                    {/* Action Buttons */}
+                    {/* Action Buttons - Complete, Edit, Cancel */}
                     <div className="flex space-x-2">
-                      {currentApplication?.status === 'pending' && (
-                        <button
-                          onClick={() => currentApplication && setEditingApplication(currentApplication)}
-                          className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-md font-medium hover:bg-blue-600 transition-colors flex items-center justify-center space-x-2"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          <span>Edit Offer</span>
-                        </button>
-                      )}
-
-                      {/* Complete button for accepted applications when request is in progress */}
+                      {/* Complete Button for Accepted Applications */}
                       {currentApplication?.status === 'accepted' && request.status === 'in_progress' && (
                         <button
-                          onClick={() => handleCompleteByNurse(request.id)}
-                          className="flex-1 px-4 py-2 bg-green-500 text-white rounded-md font-medium hover:bg-green-600 transition-colors flex items-center justify-center space-x-2"
+                          onClick={() => {
+                            console.log('✅ Complete button clicked for request:', request.id);
+                            onCompleteByNurse(request.id);
+                          }}
+                          className="flex-1 px-3 py-2 bg-green-500 text-white rounded-md font-medium hover:bg-green-600 transition-colors flex items-center justify-center space-x-2 text-sm"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1006,14 +1101,33 @@ function RequestCard({
                           <span>Complete</span>
                         </button>
                       )}
-
+                      
+                      {/* Edit Button for Pending Applications */}
                       {currentApplication?.status === 'pending' && (
                         <button
-                          onClick={() => currentApplication ? onCancel(currentApplication.id) : onCancel('temp-' + request.id)}
-                          className="flex-1 px-4 py-2 bg-red-500 text-white rounded-md font-medium hover:bg-red-600 transition-colors flex items-center justify-center space-x-2"
+                          onClick={() => parentSetEditingApplication(currentApplication)}
+                          className="px-3 py-2 bg-blue-500 text-white rounded-md font-medium hover:bg-blue-600 transition-colors flex items-center justify-center space-x-1 text-sm"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          <span>Edit</span>
+                        </button>
+                      )}
+                      
+                      {/* Cancel Button for Pending Applications */}
+                      {currentApplication?.status === 'pending' && (
+                        <button
+                          onClick={() => {
+                            if (confirm('Are you sure you want to cancel your offer? Your offer will be removed and you will be able to submit a new offer.')) {
+                              console.log('🗑️ Cancel application clicked for application:', currentApplication?.id);
+                              onCancel(currentApplication?.id);
+                            }
+                          }}
+                          className="px-3 py-2 bg-red-500 text-white rounded-md font-medium hover:bg-red-600 transition-colors flex items-center justify-center space-x-1 text-sm"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
                           <span>Cancel Offer</span>
                         </button>
@@ -1215,17 +1329,27 @@ function PatientRequestCard({
   // For visual indicator when new applications arrive
   const [hasNewApplications, setHasNewApplications] = useState(false);
   
-  // Load applications only when expanded or when component mounts
-  // Completely manual refresh - no automatic updates at all
+  // Load applications when expanded, when component mounts, or when request status changes
   useEffect(() => {
     if (showApplications || request.status === 'pending') {
-      // Load applications once when component mounts or is expanded
+      // Load applications when component mounts or is expanded
       loadApplications();
-      
-      // Auto-refresh completely disabled - user must click refresh manually
-      // This prevents annoying notifications and UI updates
     }
   }, [showApplications, request.id, request.status]);
+  
+  // Add a separate useEffect to refresh applications periodically when visible
+  useEffect(() => {
+    // Only set up auto-refresh if applications are visible
+    if (showApplications) {
+      // Refresh applications every 30 seconds to show updates
+      const refreshInterval = setInterval(() => {
+        loadApplications(false); // Don't show loading indicator for automatic refreshes
+      }, 30000);
+      
+      // Clean up interval on unmount or when applications are hidden
+      return () => clearInterval(refreshInterval);
+    }
+  }, [showApplications]);
   
   const loadApplications = async (showLoading = true) => {
     try {
@@ -1241,20 +1365,26 @@ function PatientRequestCard({
       
       let data;
       try {
-        // Add request ID console log with special formatting to make it easy to spot
-        console.log('🔍 Fetching applications for request ID:', request.id);
-        data = await apiService.getApplicationsByRequest(request.id);
-        console.log('✅ Applications data successfully received:', data);
+        // Fetch fresh data from the API with cache-busting timestamp
+        console.log('Fetching applications for request ID:', request.id);
+        const timestamp = new Date().getTime();
+        data = await apiService.getApplicationsByRequest(request.id, timestamp);
+        console.log('Applications data successfully received:', data);
       } catch (apiError) {
-        console.error('❌ API error when fetching applications:', apiError);
+        console.error('API error when fetching applications:', apiError);
         data = [];
       }
       
       // Check if we have new applications or status changes
       const hasChanges = compareApplications(applications, data);
       
-  // Process the received data
+      // Process the received data
       let applicationsData = [];
+      
+      // Filter out cancelled applications (if they still appear in the API response)
+      if (Array.isArray(data)) {
+        data = data.filter(app => app.status !== 'cancelled');
+      }
       
       // First, check if we have valid data from the API
       if (Array.isArray(data) && data.length > 0) {
@@ -1462,7 +1592,8 @@ function PatientRequestCard({
   // Count pending applications
   const pendingApplicationsCount = applications.filter(app => app.status === 'pending').length;
 
-  const canCancel = ['pending', 'accepted'].includes(request.status);
+  // Allow cancellation for pending, accepted, and in_progress requests
+  const canCancel = ['pending', 'accepted', 'in_progress'].includes(request.status);
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
@@ -1544,17 +1675,17 @@ function PatientRequestCard({
           {/* Applications section */}
           {(request.status === 'pending' || request.status === 'open') && (
             <div className="mt-4">
-              <div 
-                className="flex items-center justify-between cursor-pointer p-3 bg-blue-50 rounded-t-lg border-b-2 border-blue-100" 
-                onClick={() => {
-                  setShowApplications(!showApplications);
-                  // Reset new applications indicator when expanding
-                  if (!showApplications) {
-                    setHasNewApplications(false);
-                  }
-                }}
-              >
-                <div className="flex items-center">
+              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-t-lg border-b-2 border-blue-100">
+                <div 
+                  className="flex items-center cursor-pointer flex-grow" 
+                  onClick={() => {
+                    setShowApplications(!showApplications);
+                    // Reset new applications indicator when expanding
+                    if (!showApplications) {
+                      setHasNewApplications(false);
+                    }
+                  }}
+                >
                   <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
@@ -1575,14 +1706,35 @@ function PatientRequestCard({
                     </span>
                   )}
                 </div>
-                <svg 
-                  className={`w-5 h-5 text-blue-600 transition-transform ${showApplications ? 'transform rotate-180' : ''}`} 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                
+                <div className="flex items-center">
+                  {/* Refresh button */}
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent toggle
+                      // Force a complete refresh of applications data from server
+                      loadApplications(true);
+                    }}
+                    className="mr-3 p-1 hover:bg-blue-100 rounded-full transition-colors flex items-center justify-center"
+                    title="Refresh Applications"
+                  >
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
+                  
+                  {/* Toggle arrow */}
+                  <div className="cursor-pointer" onClick={() => setShowApplications(!showApplications)}>
+                    <svg 
+                      className={`w-5 h-5 text-blue-600 transition-transform ${showApplications ? 'transform rotate-180' : ''}`} 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
               </div>
               
               {showApplications && (
@@ -1595,7 +1747,8 @@ function PatientRequestCard({
                       </div>
                     </div>
                   ) : applications.length > 0 ? (
-                    applications.map(app => (
+                    <>
+                    {applications.map(app => (
                       <div key={app.id} className="p-5 rounded-lg bg-white hover:bg-blue-50 transition-colors">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
@@ -1703,7 +1856,22 @@ function PatientRequestCard({
                           </div>
                         </div>
                       </div>
-                    ))
+                    ))}
+                    {/* Add refresh button at the bottom of applications */}
+                    {applications.length > 0 && (
+                      <div className="text-center pt-4 mt-4 border-t border-gray-100">
+                        <button 
+                          onClick={() => loadApplications()}
+                          className="inline-flex items-center px-4 py-2 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-white hover:bg-blue-50"
+                        >
+                          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          Refresh Applications
+                        </button>
+                      </div>
+                    )}
+                    </>
                   ) : (
                     <div className="text-center py-8 px-4">
                       <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
@@ -1714,7 +1882,7 @@ function PatientRequestCard({
                       <h3 className="text-lg font-medium text-gray-900 mb-1">No Applications Yet</h3>
                       <p className="text-gray-500 mb-4">Nurses haven't applied to this request yet. Check back later or adjust your budget to attract more applications.</p>
                       <button 
-                        onClick={() => window.location.reload()}
+                        onClick={() => loadApplications()}
                         className="inline-flex items-center px-4 py-2 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-white hover:bg-blue-50"
                       >
                         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1768,34 +1936,42 @@ function PatientRequestCard({
             <button
               onClick={() => onCancel(request.id)}
               disabled={cancelling}
-              className="inline-flex items-center px-3 py-2 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`inline-flex items-center px-3 py-2 border ${
+                request.status === 'in_progress' 
+                  ? 'border-red-500 text-white bg-red-500 hover:bg-red-600'
+                  : 'border-red-300 text-red-700 bg-white hover:bg-red-50'
+              } rounded-md text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {cancelling ? (
                 <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-red-700" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-current" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                   Cancelling...
                 </>
               ) : (
-                'Cancel Request'
+                <>
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  {request.status === 'in_progress' ? 'End Service' : 'Cancel Request'}
+                </>
               )}
             </button>
           )}
 
           {/* Reviews button for completed requests */}
           {request.status === 'completed' && (
-            <button
-              type="button"
-              onClick={() => setSelectedRequestForRating(request)}
+            <Link
+              href={`/requests/${request.id}/reviews`}
               className="inline-flex items-center px-3 py-2 border border-purple-300 rounded-md text-sm font-medium text-purple-700 bg-white hover:bg-purple-50 transition-colors"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
               </svg>
               Reviews
-            </button>
+            </Link>
           )}
         </div>
         {/* Edit Application Modal */}
@@ -1827,16 +2003,28 @@ function EditApplicationModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (price <= 0 || estimatedTime <= 0) {
-      alert('Please enter valid price and time values');
+    
+    console.log('📝 Form submitted with data:', { price, estimatedTime });
+    
+    // Validate inputs
+    if (price <= 0) {
+      alert('❌ Please enter a valid price greater than $0');
+      return;
+    }
+    if (estimatedTime <= 0) {
+      alert('❌ Please enter a valid time greater than 0 hours');
       return;
     }
 
     setIsSubmitting(true);
     try {
+      console.log('🔄 Calling onUpdate with:', application.id, price, estimatedTime);
       await onUpdate(application.id, price, estimatedTime);
+      console.log('✅ Update completed successfully');
+      // Modal will be closed by the parent component
     } catch (error) {
-      console.error('Failed to update application:', error);
+      console.error('❌ Failed to update application:', error);
+      alert('❌ Failed to update offer. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

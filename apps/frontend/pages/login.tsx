@@ -28,19 +28,12 @@ export default function Login() {
       await login(email, password);
       // التوجيه يتم الآن في دالة login نفسها
     } catch (err: any) {
-      console.error('Login error in component:', err);
-
-      // Handle different types of errors with user-friendly messages
-      let errorMessage = 'An unexpected error occurred. Please try again.';
-
-      if (err.message) {
-        if (err.message.includes('Unable to connect') || err.message.includes('fetch')) {
-          errorMessage = 'Unable to connect to server. Please check your internet connection and try again.';
-        } else if (err.message.includes('Invalid') || err.message.includes('credentials')) {
-          errorMessage = 'Invalid email or password. Please check your credentials and try again.';
-        } else {
-          errorMessage = err.message;
-        }
+      // Don't log error to console
+      // Just set the error message directly from the error object
+      let errorMessage = 'Email or password are wrong.';
+      
+      if (err && typeof err === 'object' && 'message' in err) {
+        errorMessage = err.message;
       }
 
       setError(errorMessage);

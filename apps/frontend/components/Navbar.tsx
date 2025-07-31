@@ -64,7 +64,7 @@ export default function Navbar() {
           ) : (
             <div className="flex items-center space-x-4">
               {/* Notifications Bell */}
-              <Link href="/notifications" className="relative text-white hover:text-yellow-300 transition">
+              {/* <Link href="/notifications" className="relative text-white hover:text-yellow-300 transition">
                 <div className="relative">
                   <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
@@ -74,7 +74,7 @@ export default function Navbar() {
                     3
                   </span>
                 </div>
-              </Link>
+              </Link> */}
               
               {/* User Profile Dropdown */}
               <div className="relative ml-2" ref={dropdownRef}>

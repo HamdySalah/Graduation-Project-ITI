@@ -235,7 +235,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       const response = await apiService.login({ email, password });
-      console.log('Login response:', response);
+      
+      // Check if we got an error response for invalid credentials
+      if (response && typeof response === 'object' && 'success' in response && response.success === false) {
+        // Simply throw the error message without stack trace
+        throw { message: response.error || 'Invalid email or password.' };
+      }
 
       // The backend returns: { success: true, data: { access_token: "...", user: {...} } }
       let token: string;
@@ -260,8 +265,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token = (response as any).access_token;
         userData = (response as any).user;
       } else {
-        console.error('Unexpected response structure:', response);
-        throw new Error('Invalid login response format');
+        throw { message: 'Invalid email or password.' };
       }
 
       if (!token) {
@@ -280,6 +284,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('Error parsing token for expiration:', error);
       }
 
+      // Clean up application data if this is a nurse account
+      if (userData.role === 'nurse') {
+        try {
+          // Clear nurse applications to prevent mixing data between different nurse accounts
+          localStorage.removeItem('nurse_applications');
+          console.log('Cleared previous nurse applications data during login');
+        } catch (e) {
+          console.error('Failed to clean up application data during login:', e);
+        }
+      }
+      
       setUser(userData);
       saveUserToStorage(userData);
       console.log('Login successful, token and user data stored:', token.substring(0, 20) + '...');
@@ -287,27 +302,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Redirect all users to the homepage regardless of their role
       window.location.href = '/';
     } catch (error) {
-      console.error('Login failed:', error);
       // Clear any existing token on login failure
       localStorage.removeItem('token');
       setUser(null);
 
-      // Provide more user-friendly error messages
-      if (error instanceof Error) {
-        if (error.message.includes('fetch')) {
-          throw new Error('Unable to connect to server. Please check your internet connection.');
-        } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-          throw new Error('Invalid email or password. Please try again.');
-        } else if (error.message.includes('500') || error.message.includes('Internal Server Error')) {
-          throw new Error('Server error. Please try again later.');
-        }
+      // If it's our custom error object with just a message
+      if (error && typeof error === 'object' && 'message' in error) {
+        throw { message: error.message };
       }
-      throw error;
+      
+      // For network errors only
+      if (error instanceof Error && (
+        error.message.includes('fetch') || 
+        error.message.includes('connect') ||
+        error.message.includes('network')
+      )) {
+        throw { message: 'Unable to connect to server. Please check your internet connection.' };
+      }
+      
+      // Default case - always show simple message
+      throw { message: 'Email or password are wrong.' };
     }
   };
 
   const logout = () => {
     console.log('Logging out user');
+    
+    // Clean up application-specific data before logout
+    try {
+      // Clear nurse applications to prevent mixing data between different nurse accounts
+      localStorage.removeItem('nurse_applications');
+    } catch (e) {
+      console.error('Failed to clean up application data during logout:', e);
+    }
+    
     clearUserFromStorage();
     setUser(null);
     window.location.href = '/login';

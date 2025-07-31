@@ -48,8 +48,14 @@ export default function NurseApprovals() {
       const nurses = await apiService.getPendingNurses();
       console.log("Pending nurses data:", nurses);
       const nursesArray = Array.isArray(nurses) ? nurses : [];
-      setPendingNurses(nursesArray);
-      setFilteredNurses(nursesArray);
+      
+      // Sort nurses from newest to oldest based on createdAt date
+      const sortedNurses = [...nursesArray].sort((a, b) => {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+      
+      setPendingNurses(sortedNurses);
+      setFilteredNurses(sortedNurses);
     } catch (err: any) {
       console.error("Error loading pending nurses:", err);
       setError(`Failed to load pending nurses: ${err.message}`);

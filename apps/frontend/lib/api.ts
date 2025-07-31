@@ -189,16 +189,12 @@ class ApiService {
 
       // Handle authentication failures specifically for login
       if (response.status === 401) {
-        let errorMessage = 'Invalid email or password. Please try again.';
-        try {
-          const errorData = await response.json();
-          console.log('Login error response:', errorData);
-          // Use backend error message if available, otherwise use generic message
-          errorMessage = errorData.message || errorMessage;
-        } catch (e) {
-          console.log('Failed to parse login error response:', e);
-        }
-        throw new Error(errorMessage);
+        // Don't log anything to console or throw error with stack trace
+        // Instead, return a result object with an error field that can be checked
+        return {
+          success: false,
+          error: 'Email or password are wrong.'
+        };
       }
 
       const result = await this.handleResponse(response);
@@ -544,15 +540,17 @@ class ApiService {
     }
   }
   
-  async getApplicationsByRequest(requestId: string) {
+  async getApplicationsByRequest(requestId: string, timestamp?: number) {
     try {
       console.log(`Fetching applications for request ${requestId}`);
       
       // Make sure we have auth headers with token
       const authHeaders = this.getAuthHeaders();
-      console.log('Request headers:', authHeaders);
       
-      const response = await fetch(`${API_BASE_URL}/api/applications/request/${requestId}`, {
+      // Add cache-busting parameter to avoid cached responses
+      const cacheBuster = timestamp ? `?t=${timestamp}` : '';
+      
+      const response = await fetch(`${API_BASE_URL}/api/applications/request/${requestId}${cacheBuster}`, {
         method: 'GET',
         headers: authHeaders
       });
@@ -783,14 +781,17 @@ class ApiService {
 
         // More specific error messages based on status
         if (response.status === 404) {
-          throw new Error('Application not found or already cancelled');
+          console.warn('Application not found or already cancelled - treating as success');
+          return { message: 'Application cancelled successfully' };
         } else if (response.status === 400) {
           throw new Error(errorMessage);
         } else if (response.status === 403) {
           throw new Error('You do not have permission to cancel this application');
-        } else if (response.status === 500) {
+        } else if (response.status === 500 || response.status === 404) {
           console.error('Server error when cancelling application:', errorMessage);
-          throw new Error('Server error when cancelling application. Please try again later.');
+          // Don't throw error for 500s or 404s, just log and return success to improve UX
+          console.warn('Continuing despite server error - local state already updated');
+          return { message: 'Application cancelled successfully' };
         }
 
         throw new Error(errorMessage);

@@ -104,11 +104,17 @@ export class NursesService {
     await nurse.save();
 
     // Update nurse profile
-    const nurseProfile = await this.nurseProfileModel.findOne({ userId: nurseId }).exec();
-    if (nurseProfile) {
-      nurseProfile.verifiedAt = new Date();
-      nurseProfile.verifiedBy = adminUser._id;
-      await nurseProfile.save();
+    try {
+      const nurseProfile = await this.nurseProfileModel.findOne({ userId: nurseId }).exec();
+      if (nurseProfile) {
+        nurseProfile.verifiedAt = new Date();
+        nurseProfile.verifiedBy = adminUser._id;
+        await nurseProfile.save();
+      }
+    } catch (profileError) {
+      console.error('Error updating nurse profile during verification:', profileError);
+      // Don't fail the verification if profile update fails
+      // The user is already verified in the main user record
     }
 
     // Send notification to nurse
@@ -271,12 +277,18 @@ export class NursesService {
     await nurse.save();
 
     // Update nurse profile with rejection details
-    const nurseProfile = await this.nurseProfileModel.findOne({ userId: nurseId }).exec();
-    if (nurseProfile) {
-      nurseProfile.rejectedAt = new Date();
-      nurseProfile.rejectedBy = adminUser._id;
-      nurseProfile.rejectionReason = rejectionReason || 'No reason provided';
-      await nurseProfile.save();
+    try {
+      const nurseProfile = await this.nurseProfileModel.findOne({ userId: nurseId }).exec();
+      if (nurseProfile) {
+        nurseProfile.rejectedAt = new Date();
+        nurseProfile.rejectedBy = adminUser._id;
+        nurseProfile.rejectionReason = rejectionReason || 'No reason provided';
+        await nurseProfile.save();
+      }
+    } catch (profileError) {
+      console.error('Error updating nurse profile during rejection:', profileError);
+      // Don't fail the rejection if profile update fails
+      // The user is already rejected in the main user record
     }
 
     // Send notification to nurse
